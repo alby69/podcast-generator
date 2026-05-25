@@ -15,12 +15,9 @@ class Config:
     gemini_model: str = field(
         default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
     )
-    elevenlabs_api_key: str = field(
-        default_factory=lambda: os.getenv("ELEVENLABS_API_KEY", "")
-    )
-    elevenlabs_voice_id: str = field(
+    tts_voice: str = field(
         default_factory=lambda: os.getenv(
-            "ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"
+            "TTS_VOICE", "it-IT-GiuseppeNeural"
         )
     )
     output_dir: Path = field(
@@ -62,8 +59,6 @@ class Config:
         missing = []
         if not self.gemini_api_key:
             missing.append("GEMINI_API_KEY")
-        if not self.elevenlabs_api_key:
-            missing.append("ELEVENLABS_API_KEY")
         if not self.archive_url:
             missing.append("NEWSLETTER_URL o ARCHIVE_URL")
         if missing:

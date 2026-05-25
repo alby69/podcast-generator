@@ -1,17 +1,9 @@
-import asyncio
 import re
 from datetime import datetime
-from dataclasses import dataclass
 
 from playwright.async_api import async_playwright
 
-
-@dataclass
-class Newsletter:
-    title: str
-    url: str
-    date: datetime
-    content: str
+from src.models import Newsletter
 
 
 def _parse_date(text: str) -> datetime:

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import asyncio
 import sys
 from pathlib import Path
 
@@ -8,7 +9,8 @@ from rich import print as rprint
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.config import Config
-from src.pipeline import daily_episode, weekly_episode, process_all
+from src.pipeline import daily_episode as _daily, weekly_episode as _weekly, process_all as _all
+from src.tracker import Tracker
 
 app = typer.Typer(
     name="podcast-generator",
@@ -22,10 +24,7 @@ def _get_cfg() -> Config:
         cfg.validate()
     except ValueError as e:
         rprint(f"[bold red]Errore:[/] {e}")
-        rprint(
-            "Crea un file .env basato su .env.example "
-            "con le tue API key."
-        )
+        rprint("Crea un file .env basato su .env.example con le tue API key.")
         raise typer.Exit(code=1) from e
     return cfg
 
@@ -33,16 +32,14 @@ def _get_cfg() -> Config:
 @app.command()
 def daily():
     """Episodio giornaliero: ultima newsletter → traduzione → audio."""
-    cfg = _get_cfg()
-    path = daily_episode(cfg)
+    path = asyncio.run(_daily(_get_cfg()))
     rprint(f"[green]Episodio salvato in:[/] {path}")
 
 
 @app.command()
 def weekly(days: int = typer.Option(7, "--days", "-d", help="Numero giorni da aggregare")):
     """Episodio settimanale: aggrega N newsletter → traduzione → audio."""
-    cfg = _get_cfg()
-    path = weekly_episode(cfg, days)
+    path = asyncio.run(_weekly(_get_cfg(), days))
     rprint(f"[green]Episodio salvato in:[/] {path}")
 
 
@@ -52,9 +49,8 @@ def fetch_all(
         None, "--limit", "-l", help="Limite massimo newsletter da processare"
     ),
 ):
-    """Scarica TUTTE le newsletter non ancora processate, genera puntate giornaliere + compilation settimanali."""
-    cfg = _get_cfg()
-    result = process_all(cfg, limit=limit)
+    """Scarica TUTTE le newsletter non ancora processate."""
+    result = asyncio.run(_all(_get_cfg(), limit=limit))
     rprint(
         f"[green]Fatto:[/] {len(result['daily'])} giornaliere, "
         f"{len(result['weekly'])} settimanali"
@@ -65,8 +61,6 @@ def fetch_all(
 def status():
     """Mostra lo stato del tracker: puntate processate e settimane coperte."""
     cfg = _get_cfg()
-    from src.tracker import Tracker
-
     tracker = Tracker(cfg.output_dir)
     total = len(tracker.data["processed"])
     by_week = tracker.get_by_week()
@@ -74,8 +68,7 @@ def status():
     rprint(f"[bold]Puntate processate:[/] {total}")
     rprint(f"[bold]Settimane coperte:[/] {len(by_week)}")
     for wk in sorted(by_week):
-        items = by_week[wk]
-        rprint(f"  [cyan]{wk}[/]: {len(items)} puntate")
+        rprint(f"  [cyan]{wk}[/]: {len(by_week[wk])} puntate")
 
 
 if __name__ == "__main__":
