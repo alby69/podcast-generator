@@ -29,6 +29,17 @@ class Config:
         default_factory=lambda: int(os.getenv("MAX_EPISODE_MINUTES", "60"))
     )
 
+    # Sigle e Web Search
+    intro_path: Path | None = field(
+        default_factory=lambda: Path(os.getenv("INTRO_PATH")) if os.getenv("INTRO_PATH") else None
+    )
+    outro_path: Path | None = field(
+        default_factory=lambda: Path(os.getenv("OUTRO_PATH")) if os.getenv("OUTRO_PATH") else None
+    )
+    use_web_search: bool = field(
+        default_factory=lambda: os.getenv("USE_WEB_SEARCH", "false").lower() == "true"
+    )
+
     # Fonte delle news
     source_name: str = field(
         default_factory=lambda: os.getenv("SOURCE_NAME", "newsletter")

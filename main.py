@@ -30,14 +30,23 @@ def _get_cfg() -> Config:
 
 
 @app.command()
-def daily():
+def daily(
+    search: bool = typer.Option(
+        None, "--search/--no-search", help="Abilita/disabilita Google Search grounding"
+    ),
+):
     """Episodio giornaliero: ultima newsletter → traduzione → audio."""
     path = asyncio.run(_daily(_get_cfg()))
     rprint(f"[green]Episodio salvato in:[/] {path}")
 
 
 @app.command()
-def weekly(days: int = typer.Option(7, "--days", "-d", help="Numero giorni da aggregare")):
+def weekly(
+    days: int = typer.Option(7, "--days", "-d", help="Numero giorni da aggregare"),
+    search: bool = typer.Option(
+        None, "--search/--no-search", help="Abilita/disabilita Google Search grounding"
+    ),
+):
     """Episodio settimanale: aggrega N newsletter → traduzione → audio."""
     path = asyncio.run(_weekly(_get_cfg(), days))
     rprint(f"[green]Episodio salvato in:[/] {path}")
@@ -47,6 +56,9 @@ def weekly(days: int = typer.Option(7, "--days", "-d", help="Numero giorni da ag
 def fetch_all(
     limit: int = typer.Option(
         None, "--limit", "-l", help="Limite massimo newsletter da processare"
+    ),
+    search: bool = typer.Option(
+        None, "--search/--no-search", help="Abilita/disabilita Google Search grounding"
     ),
 ):
     """Scarica TUTTE le newsletter non ancora processate."""
