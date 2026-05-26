@@ -1,17 +1,9 @@
-import asyncio
 import re
 from datetime import datetime
-from dataclasses import dataclass
 
 from playwright.async_api import async_playwright
 
-
-@dataclass
-class Newsletter:
-    title: str
-    url: str
-    date: datetime
-    content: str
+from src.models import Newsletter
 
 
 def _parse_date(text: str) -> datetime:
@@ -70,6 +62,18 @@ async def _fetch_content(
         date=_parse_date(link["text"]),
         content=clean,
     )
+
+
+async def get_article_list(
+    archive_url: str,
+    load_more_selector: str = "button:has-text('Load More'), a:has-text('Load More')",
+    link_pattern: str = "/p/",
+) -> list[dict[str, str]]:
+    async with async_playwright() as p:
+        browser = await p.firefox.launch(headless=True)
+        links = await _get_links_from_archive(browser, archive_url, load_more_selector, link_pattern)
+        await browser.close()
+    return links
 
 
 async def _get_links_from_archive(

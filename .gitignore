@@ -5,3 +5,5 @@ output/
 *.mp3
 *.wav
 .venv/
+podcast.db
+web_output.log

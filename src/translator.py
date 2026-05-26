@@ -18,21 +18,31 @@ REGOLE:
 
 
 def translate_newsletter(
-    api_key: str, model: str, text: str
+    api_key: str, model: str, text: str, use_search: bool = False
 ) -> str:
     client = genai.Client(api_key=api_key)
+
+    config = {"system_instruction": SYSTEM_PROMPT}
+    if use_search:
+        config["tools"] = [{"google_search": {}}]
+        prompt = (
+            f"Testo da convertire in podcast:\n\n{text}\n\n"
+            "IMPORTANTE: Usa Google Search per approfondire ogni notizia citata, "
+            "aggiungendo dettagli tecnici, contesto e curiosità recenti."
+        )
+    else:
+        prompt = f"Testo da convertire in podcast:\n\n{text}"
+
     response = client.models.generate_content(
         model=model,
-        contents=f"Testo da convertire in podcast:\n\n{text}",
-        config={
-            "system_instruction": SYSTEM_PROMPT,
-        },
+        contents=prompt,
+        config=config,
     )
     return response.text.strip()
 
 
 def translate_multiple(
-    api_key: str, model: str, newsletters: list[tuple[str, str]]
+    api_key: str, model: str, newsletters: list[tuple[str, str]], use_search: bool = False
 ) -> str:
     combined = "\n\n--- NUOVA NEWSLETTER ---\n\n".join(
         f"TITOLO: {title}\nTESTO:\n{content}" for title, content in newsletters
@@ -43,12 +53,19 @@ def translate_multiple(
         "un monologo fluido.\n\n"
         f"{combined}"
     )
+
+    config = {"system_instruction": SYSTEM_PROMPT}
+    if use_search:
+        config["tools"] = [{"google_search": {}}]
+        prompt += (
+            "\n\nIMPORTANTE: Usa Google Search per approfondire gli argomenti principali, "
+            "aggiungendo dettagli tecnici e contesto aggiornato."
+        )
+
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
         model=model,
         contents=prompt,
-        config={
-            "system_instruction": SYSTEM_PROMPT,
-        },
+        config=config,
     )
     return response.text.strip()

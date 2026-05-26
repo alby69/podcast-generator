@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcast Generator</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-black text-center mb-12 text-blue-600 uppercase tracking-tighter">Podcast Generator</h1>
+
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Colonna Sinistra: Ricerca e Risultati -->
+            <div class="lg:col-span-2 space-y-8">
+                <div class="bg-white p-8 rounded-3xl shadow-xl">
+                    <form hx-post="/fetch-articles" hx-target="#article-list" hx-indicator="#loading">
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <input type="url" name="newsletter_url" placeholder="Incolla l'URL della newsletter (es. Beehiiv)"
+                                   required class="flex-1 p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:outline-none focus:border-blue-500 transition-all font-medium">
+                            <button type="submit" class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 active:scale-95 transition shadow-lg shadow-blue-200">
+                                Analizza
+                            </button>
+                        </div>
+                    </form>
+                    <div id="loading" class="htmx-indicator flex items-center justify-center gap-3 mt-6 text-blue-500 font-bold">
+                        <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Recupero articoli in corso...
+                    </div>
+                </div>
+
+                <div id="article-list">
+                    <!-- Qui verranno caricati gli articoli -->
+                </div>
+            </div>
+
+            <!-- Colonna Destra: Cronologia -->
+            <div class="space-y-6">
+                <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2 px-2">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Cronologia
+                </h2>
+                <div class="space-y-4 max-h-[800px] overflow-y-auto pr-2">
+                    {% for ep in episodes %}
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                        <div class="font-bold text-gray-800 leading-tight mb-2">{{ ep.title }}</div>
+                        <div class="text-xs text-gray-400 mb-4">{{ ep.date }}</div>
+                        <div class="flex justify-between items-center">
+                            <audio controls class="h-8 w-40">
+                                <source src="{{ ep.audio_path }}" type="audio/mpeg">
+                            </audio>
+                            <a href="{{ ep.audio_path }}" download class="p-2 bg-gray-50 rounded-lg text-blue-600 hover:bg-blue-600 hover:text-white transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                        <p class="text-gray-400 font-medium italic">Nessun episodio ancora generato</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

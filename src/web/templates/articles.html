@@ -1,0 +1,50 @@
+<div class="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-500">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Articoli in: <span class="text-blue-600 font-normal">{{ newsletter_url }}</span></h2>
+        <div class="space-x-2">
+            <button onclick="toggleAll(true)" class="text-sm text-blue-600 hover:underline">Seleziona tutti</button>
+            <span class="text-gray-300">|</span>
+            <button onclick="toggleAll(false)" class="text-sm text-blue-600 hover:underline">Deseleziona tutti</button>
+        </div>
+    </div>
+
+    <form hx-post="/generate" hx-target="#status-container" hx-indicator="#gen-loading">
+        <input type="hidden" name="newsletter_url" value="{{ newsletter_url }}">
+        <div class="grid gap-4 mb-8">
+            {% for article in articles %}
+            <label class="group flex items-start gap-4 p-4 bg-gray-50 rounded-xl border-2 border-transparent hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-all">
+                <input type="checkbox" name="article_urls" value="{{ article.href }}" class="mt-1.5 w-6 h-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                <div class="flex-1">
+                    <div class="font-bold text-gray-800 group-hover:text-blue-700 transition">{{ article.text }}</div>
+                    <div class="text-xs text-gray-500 mt-1 truncate max-w-md italic">{{ article.href }}</div>
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+
+        <div class="sticky bottom-4 bg-white/90 backdrop-blur-sm p-4 border border-gray-200 rounded-2xl shadow-2xl flex flex-col md:flex-row justify-between items-center gap-4">
+            <div id="status-container" class="flex-1 text-center md:text-left">
+                <p class="text-gray-500 italic">Seleziona uno o più articoli per iniziare...</p>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div id="gen-loading" class="htmx-indicator">
+                    <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-10 py-4 rounded-xl font-black text-lg hover:bg-blue-700 active:scale-95 transition shadow-lg hover:shadow-blue-200 uppercase tracking-wider">
+                    Genera Podcast
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleAll(checked) {
+    const checks = document.querySelectorAll('input[name="article_urls"]');
+    checks.forEach(c => c.checked = checked);
+}
+</script>
