@@ -54,7 +54,7 @@ async def fetch_articles(request: Request, newsletter_url: str = Form(...)):
 async def run_generation_task(job_id: str, article_urls: List[str], newsletter_url: str):
     # Memory limit for generation_results
     if len(generation_results) > MAX_RESULTS:
-        # Rimozione del risultato più vecchio (approssimativo)
+        # Rimozione del risultato più vecchio
         oldest = next(iter(generation_results))
         del generation_results[oldest]
 
@@ -159,7 +159,7 @@ async def download_file(folder: str, filename: str):
     if folder not in ["daily", "weekly"]:
         raise HTTPException(status_code=400, detail="Cartella non valida")
 
-    # Prevenzione path traversal: assicurati che filename sia solo un nome file
+    # Prevenzione path traversal
     if ".." in filename or "/" in filename or "\\" in filename:
         raise HTTPException(status_code=400, detail="Nome file non valido")
 

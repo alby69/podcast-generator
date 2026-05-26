@@ -33,13 +33,13 @@ async def fetch_latest_newsletter(
         links = await _get_links_from_archive(browser, archive_url, load_more_selector, link_pattern)
         if not links:
             raise RuntimeError("Nessun post trovato nella pagina archive.")
-        newsletter = await fetch_content(browser, links[0])
+        newsletter = await _fetch_content(browser, links[0])
         await browser.close()
 
     return newsletter
 
 
-async def fetch_content(
+async def _fetch_content(
     browser, link: dict[str, str]
 ) -> Newsletter:
     page = await browser.new_page()
@@ -117,7 +117,7 @@ async def fetch_multiple_newsletters(
         browser = await p.firefox.launch(headless=True)
         links = await _get_links_from_archive(browser, archive_url, load_more_selector, link_pattern)
         selected = links[:count]
-        newsletters = [await fetch_content(browser, link) for link in selected]
+        newsletters = [await _fetch_content(browser, link) for link in selected]
         await browser.close()
 
     return newsletters
@@ -133,7 +133,7 @@ async def fetch_all_newsletters(
         links = await _get_links_from_archive(browser, archive_url, load_more_selector, link_pattern)
         if not links:
             raise RuntimeError("Nessun post trovato nella pagina archive.")
-        newsletters = [await fetch_content(browser, link) for link in links]
+        newsletters = [await _fetch_content(browser, link) for link in links]
         await browser.close()
 
     return newsletters
