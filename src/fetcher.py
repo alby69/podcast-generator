@@ -72,8 +72,7 @@ async def get_article_list(
 ) -> list[dict[str, str]]:
     async with async_playwright() as p:
         browser = await p.firefox.launch(headless=True)
-        context = await browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-        links = await _get_links_from_archive(context, archive_url, load_more_selector, link_pattern)
+        links = await _get_links_from_archive(browser, archive_url, load_more_selector, link_pattern)
         await browser.close()
     return links
 

@@ -27,27 +27,10 @@ def _save_script(script: str, path: Path):
     path.write_text(script, encoding="utf-8")
 
 
-async def generate_script_daily(cfg: Config, newsletter: Newsletter) -> str:
-    return translate_newsletter(
-        cfg.gemini_api_key,
-        cfg.gemini_model,
-        newsletter.content,
-        use_search=cfg.use_web_search,
-    )
-
-
-async def generate_script_weekly(cfg: Config, newsletters: list[Newsletter]) -> str:
-    items = [(n.title, n.content) for n in newsletters]
-    return translate_multiple(
-        cfg.gemini_api_key,
-        cfg.gemini_model,
-        items,
-        use_search=cfg.use_web_search,
-    )
-
-
 async def build_daily(cfg: Config, newsletter: Newsletter) -> Episode:
-    script = await generate_script_daily(cfg, newsletter)
+    script = translate_newsletter(
+        cfg.gemini_api_key, cfg.gemini_model, newsletter.content
+    )
     date_str = newsletter.date.strftime("%Y-%m-%d")
     slug = _slugify(newsletter.title)
 
@@ -56,9 +39,7 @@ async def build_daily(cfg: Config, newsletter: Newsletter) -> Episode:
     audio_path = daily_dir / f"{date_str}_{slug}.mp3"
     script_path = daily_dir / f"{date_str}_{slug}.txt"
 
-    await _synthesize(
-        script, cfg.tts_voice, audio_path, elevenlabs_api_key=cfg.elevenlabs_api_key
-    )
+    await _synthesize(script, cfg.tts_voice, audio_path)
     _save_script(script, script_path)
 
     Tracker(cfg.output_dir).mark_processed(
@@ -88,7 +69,8 @@ async def fetch_and_build_latest(cfg: Config) -> Episode:
 
 
 async def build_weekly(cfg: Config, newsletters: list[Newsletter]) -> Episode:
-    script = await generate_script_weekly(cfg, newsletters)
+    items = [(n.title, n.content) for n in newsletters]
+    script = translate_multiple(cfg.gemini_api_key, cfg.gemini_model, items)
 
     today = datetime.now()
     iso = today.isocalendar()
@@ -99,9 +81,7 @@ async def build_weekly(cfg: Config, newsletters: list[Newsletter]) -> Episode:
     audio_path = weekly_dir / f"{week_label}.mp3"
     script_path = weekly_dir / f"{week_label}.txt"
 
-    await _synthesize(
-        script, cfg.tts_voice, audio_path, elevenlabs_api_key=cfg.elevenlabs_api_key
-    )
+    await _synthesize(script, cfg.tts_voice, audio_path)
     _save_script(script, script_path)
 
     duration, _ = check_duration(audio_path, cfg.max_episode_minutes)
@@ -176,14 +156,9 @@ async def process_backlog(cfg: Config, limit: int | None = None) -> dict:
             continue
 
         script = translate_newsletter(
-            cfg.gemini_api_key,
-            cfg.gemini_model,
-            nl.content,
-            use_search=cfg.use_web_search,
+            cfg.gemini_api_key, cfg.gemini_model, nl.content
         )
-        await _synthesize(
-            script, cfg.tts_voice, audio_path, elevenlabs_api_key=cfg.elevenlabs_api_key
-        )
+        await _synthesize(script, cfg.tts_voice, audio_path)
         _save_script(script, script_path)
 
         tracker.mark_processed(

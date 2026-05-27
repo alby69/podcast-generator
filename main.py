@@ -36,10 +36,7 @@ def daily(
     ),
 ):
     """Episodio giornaliero: ultima newsletter → traduzione → audio."""
-    cfg = _get_cfg()
-    if search is not None:
-        cfg.use_web_search = search
-    path = asyncio.run(_daily(cfg))
+    path = asyncio.run(_daily(_get_cfg()))
     rprint(f"[green]Episodio salvato in:[/] {path}")
 
 
@@ -51,10 +48,7 @@ def weekly(
     ),
 ):
     """Episodio settimanale: aggrega N newsletter → traduzione → audio."""
-    cfg = _get_cfg()
-    if search is not None:
-        cfg.use_web_search = search
-    path = asyncio.run(_weekly(cfg, days))
+    path = asyncio.run(_weekly(_get_cfg(), days))
     rprint(f"[green]Episodio salvato in:[/] {path}")
 
 
@@ -68,10 +62,7 @@ def fetch_all(
     ),
 ):
     """Scarica TUTTE le newsletter non ancora processate."""
-    cfg = _get_cfg()
-    if search is not None:
-        cfg.use_web_search = search
-    result = asyncio.run(_all(cfg, limit=limit))
+    result = asyncio.run(_all(_get_cfg(), limit=limit))
     rprint(
         f"[green]Fatto:[/] {len(result['daily'])} giornaliere, "
         f"{len(result['weekly'])} settimanali"

@@ -5,16 +5,19 @@ from pathlib import Path
 from typing import List
 from datetime import datetime
 
-from fastapi import FastAPI, Request, Form, BackgroundTasks, Depends, HTTPException, Response
-from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
+from fastapi import FastAPI, Request, Form, BackgroundTasks, Depends, HTTPException
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 from playwright.async_api import async_playwright
 
 from src.config import Config
-from src.fetcher import get_article_list, fetch_content
-from src.builder import build_daily, build_weekly, generate_script_daily, generate_script_weekly
+from src.fetcher import get_article_list, _fetch_content
+from src.builder import _slugify, _save_script
+from src.translator import translate_newsletter, translate_multiple
+from src.tts import generate_audio
+from src.audio import add_intro_outro, check_duration, merge_audio_files
 from src.web.db import create_db_and_tables, get_session, EpisodeDB, engine
 
 app = FastAPI(title="Podcast Generator Web")
@@ -27,87 +30,18 @@ cfg_default = Config()
 templates = Jinja2Templates(directory="src/web/templates")
 
 generation_results = {}
-MAX_RESULTS = 100
-
-def check_auth(request: Request):
-    password = os.getenv("WEB_PASSWORD")
-    if not password:
-        return True
-
-    token = request.cookies.get("auth_token")
-    if token == password:
-        return True
-    return False
 
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
 
-@app.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html", {})
-
-@app.post("/login")
-async def login(password: str = Form(...)):
-    expected = os.getenv("WEB_PASSWORD")
-    if password == expected:
-        response = RedirectResponse(url="/", status_code=303)
-        response.set_cookie(key="auth_token", value=password, httponly=True)
-        return response
-    return HTMLResponse("Password errata", status_code=401)
-
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request, session: Session = Depends(get_session)):
-    if not check_auth(request):
-        return RedirectResponse(url="/login")
     episodes = session.exec(select(EpisodeDB).order_by(EpisodeDB.created_at.desc())).all()
     return templates.TemplateResponse(request, "index.html", {"episodes": episodes})
 
-@app.get("/rss")
-async def rss_feed(request: Request, session: Session = Depends(get_session)):
-    episodes = session.exec(select(EpisodeDB).order_by(EpisodeDB.created_at.desc())).all()
-
-    base_url = str(request.base_url).rstrip("/")
-    items_xml = ""
-    for ep in episodes:
-        items_xml += f"""
-        <item>
-            <title>{ep.title}</title>
-            <link>{ep.url or base_url}</link>
-            <description>Episodio generato il {ep.date}</description>
-            <pubDate>{ep.created_at}</pubDate>
-            <enclosure url="{base_url}{ep.audio_path}" length="0" type="audio/mpeg"/>
-            <guid isPermaLink="false">{ep.id}</guid>
-        </item>"""
-
-    rss_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-    <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
-        <channel>
-            <title>Podcast Generator Feed</title>
-            <link>{base_url}</link>
-            <description>Il tuo feed personalizzato di newsletter tradotte</description>
-            <language>it-it</language>
-            {items_xml}
-        </channel>
-    </rss>"""
-    return Response(content=rss_xml, media_type="application/xml")
-
-@app.get("/history", response_class=HTMLResponse)
-async def history(request: Request, q: str = "", session: Session = Depends(get_session)):
-    if not check_auth(request):
-        return HTMLResponse("Unauthorized", status_code=401)
-
-    statement = select(EpisodeDB).order_by(EpisodeDB.created_at.desc())
-    if q:
-        statement = statement.where(EpisodeDB.title.contains(q))
-
-    episodes = session.exec(statement).all()
-    return templates.TemplateResponse(request, "history_items.html", {"episodes": episodes})
-
 @app.post("/fetch-articles", response_class=HTMLResponse)
 async def fetch_articles(request: Request, newsletter_url: str = Form(...)):
-    if not check_auth(request):
-        return HTMLResponse("Unauthorized", status_code=401)
     cfg = Config(newsletter_url=newsletter_url)
     try:
         articles = await get_article_list(cfg.archive_url, cfg.load_more_selector, cfg.link_pattern)
@@ -120,41 +54,51 @@ async def fetch_articles(request: Request, newsletter_url: str = Form(...)):
     })
 
 async def run_generation_task(job_id: str, article_urls: List[str], newsletter_url: str):
-    # Memory limit for generation_results
-    if len(generation_results) > MAX_RESULTS:
-        # Rimozione del risultato più vecchio
-        oldest = next(iter(generation_results))
-        del generation_results[oldest]
-
     cfg = Config(newsletter_url=newsletter_url)
     try:
         async with async_playwright() as p:
             browser = await p.firefox.launch(headless=True)
-            context = await browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
             newsletters = []
             for url in article_urls:
                 link = {"href": url, "text": "Articolo"}
-                nl = await fetch_content(context, link)
+                nl = await _fetch_content(browser, link)
                 newsletters.append(nl)
             await browser.close()
 
+        today = datetime.now()
         if len(newsletters) == 1:
-            episode = await build_daily(cfg, newsletters[0])
+            nl = newsletters[0]
+            script = translate_newsletter(cfg.gemini_api_key, cfg.gemini_model, nl.content, use_search=cfg.use_web_search)
+            date_str = nl.date.strftime("%Y-%m-%d")
+            slug = _slugify(nl.title)
             folder = "daily"
-            filename = episode.audio_path.name
+            filename = f"{date_str}_{slug}_{job_id[:8]}.mp3"
+            title = nl.title
+            source_url = nl.url
         else:
-            episode = await build_weekly(cfg, newsletters)
+            newsletter_items = [(n.title, n.content) for n in newsletters]
+            script = translate_multiple(cfg.gemini_api_key, cfg.gemini_model, newsletter_items, use_search=cfg.use_web_search)
             folder = "weekly"
-            filename = episode.audio_path.name
+            filename = f"compilation_{today.strftime('%Y%m%d')}_{job_id[:8]}.mp3"
+            title = f"Compilation {len(newsletters)} articoli"
+            source_url = newsletter_url
+
+        audio_path = cfg.output_dir / folder / filename
+        script_path = cfg.output_dir / folder / f"{filename}.txt"
+
+        await generate_audio(script, cfg.tts_voice, audio_path)
+        if cfg.intro_path or cfg.outro_path:
+            add_intro_outro(audio_path, cfg.intro_path, cfg.outro_path, audio_path)
+        _save_script(script, script_path)
 
         # Persistenza nel DB
         with Session(engine) as session:
             new_ep = EpisodeDB(
-                title=episode.title,
-                url=episode.url or newsletter_url,
-                date=episode.date_str,
+                title=title,
+                url=source_url,
+                date=today.strftime("%Y-%m-%d"),
                 audio_path=f"/download/{folder}/{filename}",
-                script_path=str(episode.script_path),
+                script_path=str(script_path),
                 created_at=datetime.now().isoformat()
             )
             session.add(new_ep)
@@ -165,7 +109,7 @@ async def run_generation_task(job_id: str, article_urls: List[str], newsletter_u
             "status": "completed",
             "download_url": f"/download/{folder}/{filename}",
             "filename": filename,
-            "title": episode.title
+            "title": title
         }
     except Exception as e:
         generation_results[job_id] = {"status": "error", "message": str(e)}
@@ -177,8 +121,6 @@ async def generate(
     article_urls: List[str] = Form(...),
     newsletter_url: str = Form(...)
 ):
-    if not check_auth(request):
-        return HTMLResponse("Unauthorized", status_code=401)
     job_id = str(uuid.uuid4())
     generation_results[job_id] = {"status": "processing"}
     background_tasks.add_task(run_generation_task, job_id, article_urls, newsletter_url)
@@ -225,48 +167,8 @@ async def check_status(job_id: str):
 
     return f"<div class='p-4 bg-red-50 text-red-700 rounded-xl border border-red-200'>Errore: {result.get('message', 'Errore generico')}</div>"
 
-@app.post("/preview", response_class=HTMLResponse)
-async def preview(
-    request: Request,
-    article_urls: List[str] = Form(...),
-    newsletter_url: str = Form(...)
-):
-    if not check_auth(request):
-        return HTMLResponse("Unauthorized", status_code=401)
-    cfg = Config(newsletter_url=newsletter_url)
-    try:
-        async with async_playwright() as p:
-            browser = await p.firefox.launch(headless=True)
-            context = await browser.new_context(user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-            newsletters = []
-            for url in article_urls:
-                link = {"href": url, "text": "Articolo"}
-                nl = await fetch_content(context, link)
-                newsletters.append(nl)
-            await browser.close()
-
-        if len(newsletters) == 1:
-            script = await generate_script_daily(cfg, newsletters[0])
-        else:
-            script = await generate_script_weekly(cfg, newsletters)
-
-        return f"""
-            <div class="bg-gray-900 text-gray-100 p-6 rounded-2xl border border-gray-700 font-serif leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto shadow-inner">
-                {script}
-            </div>
-        """
-    except Exception as e:
-        return f"<div class='p-4 bg-red-50 text-red-700 rounded-xl border border-red-200'>Errore durante la preview: {str(e)}</div>"
-
 @app.get("/download/{folder}/{filename}")
 async def download_file(folder: str, filename: str):
-    if folder not in ["daily", "weekly"]:
-        raise HTTPException(status_code=400, detail="Cartella non valida")
-
-    # Prevenzione path traversal
-    if ".." in filename or "/" in filename or "\\" in filename:
-        raise HTTPException(status_code=400, detail="Nome file non valido")
-
     cfg = Config()
     path = cfg.output_dir / folder / filename
     if not path.exists():
