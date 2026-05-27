@@ -28,6 +28,9 @@ class Config:
     max_episode_minutes: int = field(
         default_factory=lambda: int(os.getenv("MAX_EPISODE_MINUTES", "60"))
     )
+    elevenlabs_api_key: str | None = field(
+        default_factory=lambda: os.getenv("ELEVENLABS_API_KEY")
+    )
 
     # Sigle e Web Search
     intro_path: Path | None = field(

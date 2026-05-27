@@ -8,7 +8,7 @@
         </div>
     </div>
 
-    <form hx-post="/generate" hx-target="#status-container" hx-indicator="#gen-loading">
+    <form id="generate-form">
         <input type="hidden" name="newsletter_url" value="{{ newsletter_url }}">
         <div class="grid gap-4 mb-8">
             {% for article in articles %}
@@ -16,10 +16,17 @@
                 <input type="checkbox" name="article_urls" value="{{ article.href }}" class="mt-1.5 w-6 h-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 <div class="flex-1">
                     <div class="font-bold text-gray-800 group-hover:text-blue-700 transition">{{ article.text }}</div>
-                    <div class="text-xs text-gray-500 mt-1 truncate max-w-md italic">{{ article.href }}</div>
+                    {% if article.description %}
+                    <div class="text-sm text-gray-600 mt-1 line-clamp-2">{{ article.description }}</div>
+                    {% endif %}
+                    <div class="text-xs text-gray-400 mt-1 truncate max-w-md italic">{{ article.href }}</div>
                 </div>
             </label>
             {% endfor %}
+        </div>
+
+        <div id="preview-area" class="mb-8 hidden">
+            <!-- Preview text goes here -->
         </div>
 
         <div class="sticky bottom-4 bg-white/90 backdrop-blur-sm p-4 border border-gray-200 rounded-2xl shadow-2xl flex flex-col md:flex-row justify-between items-center gap-4">
@@ -27,14 +34,30 @@
                 <p class="text-gray-500 italic">Seleziona uno o più articoli per iniziare...</p>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
                 <div id="gen-loading" class="htmx-indicator">
                     <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                 </div>
-                <button type="submit" class="bg-blue-600 text-white px-10 py-4 rounded-xl font-black text-lg hover:bg-blue-700 active:scale-95 transition shadow-lg hover:shadow-blue-200 uppercase tracking-wider">
+
+                <button type="button"
+                        hx-post="/preview"
+                        hx-target="#preview-area"
+                        hx-include="#generate-form"
+                        hx-indicator="#gen-loading"
+                        onclick="document.getElementById('preview-area').classList.remove('hidden')"
+                        class="bg-gray-100 text-gray-700 px-6 py-4 rounded-xl font-bold hover:bg-gray-200 transition active:scale-95">
+                    Anteprima Testo
+                </button>
+
+                <button type="button"
+                        hx-post="/generate"
+                        hx-target="#status-container"
+                        hx-include="#generate-form"
+                        hx-indicator="#gen-loading"
+                        class="bg-blue-600 text-white px-10 py-4 rounded-xl font-black text-lg hover:bg-blue-700 active:scale-95 transition shadow-lg hover:shadow-blue-200 uppercase tracking-wider">
                     Genera Podcast
                 </button>
             </div>

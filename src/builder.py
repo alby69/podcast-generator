@@ -27,13 +27,27 @@ def _save_script(script: str, path: Path):
     path.write_text(script, encoding="utf-8")
 
 
-async def build_daily(cfg: Config, newsletter: Newsletter) -> Episode:
-    script = translate_newsletter(
+async def generate_script_daily(cfg: Config, newsletter: Newsletter) -> str:
+    return translate_newsletter(
         cfg.gemini_api_key,
         cfg.gemini_model,
         newsletter.content,
         use_search=cfg.use_web_search,
     )
+
+
+async def generate_script_weekly(cfg: Config, newsletters: list[Newsletter]) -> str:
+    items = [(n.title, n.content) for n in newsletters]
+    return translate_multiple(
+        cfg.gemini_api_key,
+        cfg.gemini_model,
+        items,
+        use_search=cfg.use_web_search,
+    )
+
+
+async def build_daily(cfg: Config, newsletter: Newsletter) -> Episode:
+    script = await generate_script_daily(cfg, newsletter)
     date_str = newsletter.date.strftime("%Y-%m-%d")
     slug = _slugify(newsletter.title)
 
@@ -74,13 +88,7 @@ async def fetch_and_build_latest(cfg: Config) -> Episode:
 
 
 async def build_weekly(cfg: Config, newsletters: list[Newsletter]) -> Episode:
-    items = [(n.title, n.content) for n in newsletters]
-    script = translate_multiple(
-        cfg.gemini_api_key,
-        cfg.gemini_model,
-        items,
-        use_search=cfg.use_web_search,
-    )
+    script = await generate_script_weekly(cfg, newsletters)
 
     today = datetime.now()
     iso = today.isocalendar()
