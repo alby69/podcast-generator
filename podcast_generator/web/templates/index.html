@@ -1,20 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="text-4xl font-black text-center mb-12 text-blue-600 uppercase tracking-tighter">Podcast Generator</h1>
-
 <div class="grid lg:grid-cols-3 gap-8">
     <!-- Left Column: Search & Results -->
     <div class="lg:col-span-2 space-y-8">
-        <div class="bg-white p-8 rounded-3xl shadow-xl">
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+            <div class="flex items-center gap-4 mb-6">
+                <button hx-post="/fetch-articles" hx-target="#article-list" hx-indicator="#loading"
+                        hx-vals='{"source_type": "web"}'
+                        class="px-4 py-2 rounded-lg font-bold bg-slate-100 hover:bg-slate-200 transition-colors">Web Archive</button>
+                <button hx-post="/fetch-articles" hx-target="#article-list" hx-indicator="#loading"
+                        hx-vals='{"source_type": "email"}'
+                        class="px-4 py-2 rounded-lg font-bold bg-slate-100 hover:bg-slate-200 transition-colors">Dalla Posta</button>
+            </div>
+
             <form hx-post="/fetch-articles" hx-target="#article-list" hx-indicator="#loading"
                   hx-on::after-request="if(event.detail.successful) document.getElementById('article-list').scrollIntoView({behavior:'smooth', block:'start'})">
+                <input type="hidden" name="source_type" value="web">
                 <div class="flex flex-col md:flex-row gap-4">
                     <input type="url" name="newsletter_url"
                            placeholder="Incolla l'URL della newsletter (es. Beehiiv)"
-                           required
-                           class="flex-1 p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:outline-none focus:border-blue-500 transition-all font-medium">
+                           class="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-primary transition-all font-medium">
                     <button type="submit"
-                            class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 active:scale-95 transition shadow-lg shadow-blue-200">
+                            class="bg-primary text-white px-8 py-4 rounded-2xl font-bold hover:bg-primary-dark active:scale-95 transition shadow-lg shadow-blue-200">
                         Analizza
                     </button>
                 </div>

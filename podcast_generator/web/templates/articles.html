@@ -1,15 +1,15 @@
 {% if not partial %}
-<div class="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-500"
+<div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200"
      hx-history="false">
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold text-gray-800">
-            Articoli in:
-            <span class="text-blue-600 font-normal text-base block md:inline">{{ newsletter_url }}</span>
+        <h2 class="text-2xl font-bold text-slate-800">
+            Articoli:
+            <span class="text-primary font-normal text-base block md:inline">{{ newsletter_url }}</span>
         </h2>
         <div class="space-x-2 text-sm">
-            <button onclick="toggleAll(true)" class="text-blue-600 hover:underline">Seleziona tutti</button>
-            <span class="text-gray-300">|</span>
-            <button onclick="toggleAll(false)" class="text-blue-600 hover:underline">Deseleziona tutti</button>
+            <button onclick="toggleAll(true)" class="text-primary hover:underline">Seleziona tutti</button>
+            <span class="text-slate-300">|</span>
+            <button onclick="toggleAll(false)" class="text-primary hover:underline">Deseleziona tutti</button>
         </div>
     </div>
     {% if total > 0 %}
@@ -27,16 +27,16 @@
         <div class="grid gap-4 mb-8" id="articles-container">
             {% if articles %}
             {% for article in articles %}
-            <div class="group flex items-start gap-4 p-4 bg-gray-50 rounded-xl border-2 border-transparent hover:border-blue-200 hover:bg-blue-50 transition-all">
+            <div class="group flex items-start gap-4 p-4 bg-slate-50 rounded-xl border-2 border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all">
                 <input type="checkbox" name="article_urls" value="{{ article.href }}"
-                       class="mt-1.5 w-6 h-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0">
+                       class="mt-1.5 w-6 h-6 rounded border-slate-300 text-primary focus:ring-primary shrink-0">
                 <div class="flex-1 min-w-0">
                     <button type="button"
                             hx-post="/article"
                             hx-vals='{"url":{{ article.href|tojson }},"title":{{ article.text|tojson }},"date":{{ article.date|tojson }},"duration":{{ article.duration|tojson }},"description":{{ article.description|tojson }},"newsletter_url":{{ newsletter_url|tojson }}}'
                             hx-target="#articles-container"
                             hx-swap="innerHTML"
-                            class="font-bold text-gray-800 hover:text-blue-700 transition leading-snug cursor-pointer bg-transparent border-none p-0 text-left w-full">
+                            class="font-bold text-slate-800 hover:text-primary transition leading-snug cursor-pointer bg-transparent border-none p-0 text-left w-full">
                         {{- article.text -}}
                     </button>
                     <div class="flex items-center gap-3 text-sm text-gray-400 mt-1.5">
@@ -81,15 +81,15 @@
                         {% if page <= 1 %}disabled{% endif %}>
                     Precedenti
                 </button>
-                <span class="text-sm font-bold text-blue-600 min-w-[2.5rem] text-center">{{ page }}</span>
+                <span class="text-sm font-bold text-primary min-w-[2.5rem] text-center">{{ page }}</span>
                 <button hx-get="/articles?page={{ page + 1 }}"
                         hx-target="#articles-container"
                         hx-swap="innerHTML"
                         class="px-4 py-2 text-sm rounded-lg transition font-medium
                                {% if page < total_pages %}
-                               bg-blue-600 text-white hover:bg-blue-700
+                               bg-primary text-white hover:bg-primary-dark
                                {% else %}
-                               bg-gray-50 text-gray-300 cursor-not-allowed
+                               bg-slate-50 text-slate-300 cursor-not-allowed
                                {% endif %}"
                         {% if page >= total_pages %}disabled{% endif %}>
                     Successivi
@@ -105,13 +105,13 @@
             </div>
             <div class="flex items-center gap-4">
                 <div id="gen-loading" class="htmx-indicator">
-                    <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                     </svg>
                 </div>
                 <button type="submit"
-                        class="bg-blue-600 text-white px-10 py-4 rounded-xl font-black text-lg hover:bg-blue-700 active:scale-95 transition shadow-lg hover:shadow-blue-200 uppercase tracking-wider">
+                    class="bg-primary text-white px-10 py-4 rounded-xl font-black text-lg hover:bg-primary-dark active:scale-95 transition shadow-lg hover:shadow-blue-200 uppercase tracking-wider">
                     Genera Podcast
                 </button>
             </div>

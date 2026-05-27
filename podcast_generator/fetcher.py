@@ -4,6 +4,9 @@ import re
 from datetime import datetime
 from typing import Optional
 
+import feedparser
+import trafilatura
+from imap_tools import MailBox, AND
 from playwright.async_api import async_playwright
 
 from podcast_generator.exceptions import FetchError
@@ -80,6 +83,20 @@ def _parse_article_text(text: str) -> dict:
 async def fetch_content(
     context, link: dict[str, str]
 ) -> Newsletter:
+    # Try trafilatura first for cleaner extraction
+    downloaded = trafilatura.fetch_url(link["href"])
+    if downloaded:
+        content = trafilatura.extract(downloaded)
+        if content:
+            title = link["text"].split("•")[0].strip() if "•" in link["text"] else link["text"]
+            return Newsletter(
+                title=title,
+                url=link["href"],
+                date=_parse_date(link.get("text", "")),
+                content=content,
+            )
+
+    # Fallback to Playwright if trafilatura fails
     page = await context.new_page()
     try:
         await page.goto(link["href"], wait_until="domcontentloaded", timeout=60000)
@@ -345,6 +362,67 @@ async def fetch_multiple_newsletters(
         finally:
             await browser.close()
     return newsletters
+
+
+async def get_rss_articles(rss_url: str) -> list[ArticleSummary]:
+    feed = feedparser.parse(rss_url)
+    articles = []
+    for entry in feed.entries:
+        date_str = ""
+        if hasattr(entry, "published"):
+            date_str = entry.published
+        elif hasattr(entry, "updated"):
+            date_str = entry.updated
+
+        articles.append(ArticleSummary(
+            href=entry.link,
+            text=entry.title,
+            description=getattr(entry, "summary", ""),
+            date=date_str,
+        ))
+    return articles
+
+
+async def get_email_articles(
+    imap_host: str, imap_user: str, imap_password: str, folder: str = "INBOX"
+) -> list[ArticleSummary]:
+    if not imap_host or not imap_user or not imap_password:
+        return []
+
+    articles = []
+    try:
+        with MailBox(imap_host).login(imap_user, imap_password, folder) as mailbox:
+            for msg in mailbox.fetch(limit=10, reverse=True):
+                # We use a special URN for emails so the builder knows how to fetch them
+                # format: email://{uid}
+                articles.append(ArticleSummary(
+                    href=f"email://{msg.uid}",
+                    text=msg.subject,
+                    description=msg.text[:200] if msg.text else "",
+                    date=msg.date.strftime("%Y-%m-%d %H:%M:%S"),
+                ))
+    except Exception as e:
+        raise FetchError(f"IMAP error: {e}") from e
+    return articles
+
+
+async def fetch_email_content(
+    imap_host: str, imap_user: str, imap_password: str, uid: str, folder: str = "INBOX"
+) -> Newsletter:
+    try:
+        with MailBox(imap_host).login(imap_user, imap_password, folder) as mailbox:
+            for msg in mailbox.fetch(AND(uid=uid)):
+                html = msg.html or ""
+                content = trafilatura.extract(html) or msg.text or ""
+                return Newsletter(
+                    title=msg.subject,
+                    url=f"email://{msg.uid}",
+                    date=msg.date,
+                    content=content,
+                )
+    except Exception as e:
+        raise FetchError(f"IMAP error fetching UID {uid}: {e}") from e
+    raise FetchError(f"Email with UID {uid} not found")
 
 
 async def fetch_newsletters_from_urls(

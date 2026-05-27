@@ -1,19 +1,33 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="min-h-[80vh] flex items-center justify-center">
-    <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md">
-        <h1 class="text-3xl font-black text-center mb-8 text-blue-600 uppercase tracking-tighter">Podcast Generator</h1>
-        <form action="/login" method="post" class="space-y-6">
-            <div>
-                <label for="password" class="block text-sm font-bold text-gray-700 mb-2 px-1">Password</label>
-                <input type="password" id="password" name="password" required
-                       class="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:outline-none focus:border-blue-500 transition-all font-medium">
+<div class="min-h-[70vh] flex items-center justify-center">
+    <div class="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-200 w-full max-w-md">
+        <div class="flex flex-col items-center mb-8">
+            <div class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100 mb-4">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                </svg>
             </div>
+            <h1 class="text-3xl font-extrabold tracking-tight">Podcast<span class="text-primary">Gen</span></h1>
+        </div>
+
+        <form action="/login" method="post" class="space-y-6">
+            <div class="space-y-2">
+                <label for="password" class="text-sm font-semibold text-slate-600 ml-1">Password di accesso</label>
+                <input type="password" id="password" name="password" required autofocus
+                       placeholder="••••••••"
+                       class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:border-primary transition-all font-medium">
+            </div>
+
             <button type="submit"
-                    class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 active:scale-95 transition shadow-lg shadow-blue-200 uppercase">
-                Accedi
+                    class="w-full bg-primary text-white py-4 rounded-2xl font-bold hover:bg-primary-dark active:scale-[0.98] transition shadow-lg shadow-blue-200">
+                Accedi al Dashboard
             </button>
         </form>
+
+        <p class="text-center text-slate-400 text-xs mt-8">
+            Inserisci la password definita nella tua configurazione
+        </p>
     </div>
 </div>
 {% endblock %}

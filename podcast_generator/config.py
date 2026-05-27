@@ -43,6 +43,17 @@ class Settings(BaseSettings):
     source_name: str = Field(default="newsletter")
     newsletter_url: str = Field(default="")
     archive_url: str = Field(default="")
+    rss_urls: list[str] = Field(default_factory=list)
+
+    # === IMAP Settings ===
+    imap_host: str = Field(default="")
+    imap_user: str = Field(default="")
+    imap_password: str = Field(default="")
+    imap_folder: str = Field(default="INBOX")
+
+    # === UI Customization ===
+    ui_primary_color: str = Field(default="#2563eb")  # blue-600
+    ui_accent_color: str = Field(default="#3b82f6")   # blue-500
 
     # === Scraping Selectors (default Beehiiv) ===
     load_more_selector: str = Field(

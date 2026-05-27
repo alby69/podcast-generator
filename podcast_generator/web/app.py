@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 from podcast_generator.config import Settings
 from podcast_generator.models import ArticleSummary, GenerationJob, JobStatus
 from podcast_generator.builder import PodcastGenerator
-from podcast_generator.fetcher import get_article_list, fetch_article_html
+from podcast_generator.fetcher import get_article_list, fetch_article_html, get_rss_articles, get_email_articles
 from podcast_generator.web.db import init_db, add_episode, get_episodes
 from podcast_generator.web.auth import verify_web_password, verify_api_token
 
@@ -52,30 +52,41 @@ app = FastAPI(
 async def index(request: Request, _=Depends(verify_web_password)):
     episodes = get_episodes()
     return templates.TemplateResponse(
-        request, "index.html", {"episodes": episodes}
+        request, "index.html", {"episodes": episodes, "config": _cfg}
     )
 
 
 @app.post("/fetch-articles", response_class=HTMLResponse)
 async def fetch_articles(
     request: Request,
-    newsletter_url: str = Form(...),
+    newsletter_url: Optional[str] = Form(None),
+    source_type: str = Form("web"),
     _=Depends(verify_web_password),
 ):
     try:
-        archive = (
-            f"{newsletter_url}/archive"
-            if newsletter_url
-            else _cfg.archive_url
-        )
-        articles = await get_article_list(
-            archive,
-            load_more_selector=_cfg.load_more_selector,
-            link_pattern=_cfg.link_pattern,
-            max_articles=_cfg.max_articles,
-        )
+        if source_type == "email":
+            articles = await get_email_articles(
+                _cfg.imap_host, _cfg.imap_user, _cfg.imap_password, _cfg.imap_folder
+            )
+            _article_cache["newsletter_url"] = "Email Inbox"
+        elif newsletter_url and (newsletter_url.endswith(".xml") or "/feed" in newsletter_url or "rss" in newsletter_url):
+            articles = await get_rss_articles(newsletter_url)
+            _article_cache["newsletter_url"] = newsletter_url
+        else:
+            archive = (
+                f"{newsletter_url}/archive"
+                if newsletter_url
+                else _cfg.archive_url
+            )
+            articles = await get_article_list(
+                archive,
+                load_more_selector=_cfg.load_more_selector,
+                link_pattern=_cfg.link_pattern,
+                max_articles=_cfg.max_articles,
+            )
+            _article_cache["newsletter_url"] = newsletter_url or _cfg.newsletter_url
+
         _article_cache["articles"] = articles
-        _article_cache["newsletter_url"] = newsletter_url
     except Exception as e:
         return HTMLResponse(
             content=(
@@ -86,6 +97,35 @@ async def fetch_articles(
         )
 
     return await _render_articles(request, page=1)
+
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request, _=Depends(verify_web_password)):
+    return templates.TemplateResponse(
+        request, "settings.html", {"config": _cfg}
+    )
+
+
+@app.post("/save-settings")
+async def save_settings(
+    request: Request,
+    ui_primary_color: str = Form(...),
+    ui_accent_color: str = Form(...),
+    imap_host: str = Form(...),
+    imap_user: str = Form(...),
+    imap_password: str = Form(...),
+    imap_folder: str = Form(...),
+    _=Depends(verify_web_password),
+):
+    _cfg.ui_primary_color = ui_primary_color
+    _cfg.ui_accent_color = ui_accent_color
+    _cfg.imap_host = imap_host
+    _cfg.imap_user = imap_user
+    _cfg.imap_password = imap_password
+    _cfg.imap_folder = imap_folder
+
+    # In a real app, we'd save to .env or a DB. For now, it's in-memory for the session.
+    return RedirectResponse(url="/settings", status_code=303)
 
 
 async def _render_articles(
@@ -113,6 +153,7 @@ async def _render_articles(
             "per_page": per_page,
             "total_pages": total_pages,
             "partial": partial,
+            "config": _cfg,
         },
     )
 
@@ -309,7 +350,7 @@ async def download_file(folder: str, filename: str):
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html")
+    return templates.TemplateResponse(request, "login.html", {"config": _cfg})
 
 
 @app.post("/login")

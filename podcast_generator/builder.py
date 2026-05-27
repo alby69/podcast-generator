@@ -13,6 +13,7 @@ from podcast_generator.fetcher import (
     fetch_all_newsletters as _fetch_all,
     fetch_newsletters_from_urls as _fetch_from_urls,
     fetch_content as _fetch_content,
+    fetch_email_content as _fetch_email,
 )
 from podcast_generator.translator import translate_newsletter, translate_multiple
 from podcast_generator.tts import generate_audio as _synthesize
@@ -137,13 +138,33 @@ class PodcastGenerator:
         return await self.build_daily(newsletter)
 
     async def build_from_urls(self, urls: list[str], titles: Optional[list[str]] = None) -> Episode:
-        newsletters = await _fetch_from_urls(
-            self.config.archive_url,
-            urls,
-            titles=titles,
-            load_more_selector=self.config.load_more_selector,
-            link_pattern=self.config.link_pattern,
-        )
+        newsletters = []
+
+        # Split URLs into email and web/rss
+        email_uids = [u.replace("email://", "") for u in urls if u.startswith("email://")]
+        web_urls = [u for u in urls if not u.startswith("email://")]
+
+        if email_uids:
+            for uid in email_uids:
+                nl = await _fetch_email(
+                    self.config.imap_host,
+                    self.config.imap_user,
+                    self.config.imap_password,
+                    uid,
+                    self.config.imap_folder,
+                )
+                newsletters.append(nl)
+
+        if web_urls:
+            web_newsletters = await _fetch_from_urls(
+                self.config.archive_url,
+                web_urls,
+                titles=titles,
+                load_more_selector=self.config.load_more_selector,
+                link_pattern=self.config.link_pattern,
+            )
+            newsletters.extend(web_newsletters)
+
         if len(newsletters) == 1:
             return await self.build_daily(newsletters[0])
         return await self.build_weekly(newsletters)
