@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcast Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Fallback base styles if Tailwind CDN fails */
+        body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; background: #f3f4f6; color: #1f2937; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .hidden { display: none; }
+        .text-red-500 { color: #ef4444; }
+        .text-blue-600 { color: #2563eb; }
+        .text-gray-400 { color: #9ca3af; }
+        .text-gray-500 { color: #6b7280; }
+        .bg-white { background: #fff; }
+        .bg-red-50 { background: #fef2f2; }
+        .p-4 { padding: 1rem; }
+        .rounded-xl { border-radius: 0.75rem; }
+        .border { border: 1px solid #e5e7eb; }
+        .border-red-200 { border-color: #fecaca; }
+        .font-bold { font-weight: 700; }
+        .mt-6 { margin-top: 1.5rem; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .gap-3 { gap: 0.75rem; }
+        .justify-center { justify-content: center; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

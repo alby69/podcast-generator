@@ -1,19 +1,41 @@
 import pytest
 from unittest.mock import AsyncMock, patch
-from src.builder import generate_script_daily
+
 
 @pytest.mark.asyncio
-async def test_generate_script_daily(mock_config, mock_newsletter):
-    with patch("src.builder.translate_newsletter", return_value="Translated Script") as mock_translate:
-        script = await generate_script_daily(mock_config, mock_newsletter)
-        assert script == "Translated Script"
-        mock_translate.assert_called_once()
+async def test_config_validation():
+    from podcast_generator.config import Settings
+    from podcast_generator.exceptions import ConfigError
 
-def test_config_validation():
-    from src.config import Config
-    cfg = Config(gemini_api_key="", newsletter_url="")
-    with pytest.raises(ValueError):
+    cfg = Settings(gemini_api_key="", newsletter_url="")
+    with pytest.raises(ConfigError):
         cfg.validate()
 
-    cfg2 = Config(gemini_api_key="key", newsletter_url="url")
-    cfg2.validate() # Should not raise
+    cfg2 = Settings(gemini_api_key="key", newsletter_url="https://example.com")
+    cfg2.validate()
+
+
+@pytest.mark.asyncio
+async def test_podcast_generator_init():
+    from podcast_generator.builder import PodcastGenerator
+    from podcast_generator.config import Settings
+
+    gen = PodcastGenerator()
+    assert gen.config is not None
+
+    cfg = Settings(gemini_api_key="test")
+    gen2 = PodcastGenerator(cfg)
+    assert gen2.config.gemini_api_key == "test"
+
+
+@pytest.mark.asyncio
+async def test_translate_newsletter(mock_config):
+    from podcast_generator.translator import translate_newsletter
+
+    with patch(
+        "podcast_generator.translator.GeminiProvider.generate",
+        new_callable=AsyncMock,
+        return_value="Ciao a tutti e benvenuti...",
+    ):
+        result = await translate_newsletter(mock_config, "Test content")
+        assert "Ciao a tutti" in result

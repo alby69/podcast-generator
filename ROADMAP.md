@@ -1,154 +1,116 @@
-# Roadmap — Web App Podcast Generator
+# Roadmap
 
-## Visione
+## v2.0 — Ristrutturazione completa (completata)
 
-Interfaccia web dove l'utente incolla l'URL di una newsletter, vede l'elenco degli articoli con descrizione, seleziona quelli che vuole e genera file audio MP3 con un click.
+### Obiettivo
+Trasformare il progetto in una **libreria Python installabile** con API pulita, multi-LLM, web app FastAPI e documentazione.
 
-```
-Incolla URL newsletter
-        │
-        ▼
-┌──────────────────────────────┐
-│  Elenco articoli trovati:    │
-│                              │
-│  ☑ AI Framework XYZ lancia  │
-│     nuova versione 5.0       │
-│  ☑ OpenAI annuncia GPT-5    │
-│  ☑ Nuovo tool per MLops     │
-│     ...                      │
-│                              │
-│  [Seleziona tutti]  [Genera] │
-└──────────────────────────────┘
-        │
-        ▼
-   Download MP3 pronto
-```
+### Cosa è stato fatto
 
-## Stack consigliato
+**Architettura a libreria**
+- Nuovo pacchetto `podcast_generator/` installabile via `pip` o `pyproject.toml`
+- Classe `PodcastGenerator` come interfaccia pubblica unica
+- Separazione netta tra libreria core, CLI, web app
 
-### Backend: **FastAPI** (Python)
-- Stesso linguaggio del progetto, riusa `src/builder.py` e tutti i moduli esistenti
-- Async nativo (compatibile con `edge-tts`, `playwright`)
-- Documentazione automatica OpenAPI
-- Built-in validazione Pydantic (compatibile con le dataclass esistenti)
+**Configurazione**
+- Migrazione a **Pydantic Settings V2**
+- Supporto multi-LLM: **Gemini**, **OpenAI**, **Anthropic**, **Ollama**
+- Provider TTS: **Edge-TTS** (default, gratuito), **ElevenLabs**
 
-### Database: **SQLite + SQLModel**
-- Zero configurazione, file-based, perfetto per deploy singolo utente
-- SQLModel = Pydantic + SQLAlchemy, typing forte
-- Per salvare: cronologia episodi, preferenze utente, newsletter processate
-- In futuro si scala a PostgreSQL se serve multi-utente
+**Web App**
+- Riscritta in **FastAPI** con OpenAPI/Swagger docs
+- **sqlite3** puro (leggero, zero dipendenze ORM)
+- **REST API** completa con Bearer token auth
+- **Web UI** protetta da password
+- **RSS feed** per podcast player
 
-### Frontend: **FastHTML** (consigliato) **oppure** HTMX + Jinja2
+**Bug fix**
+- `get_article_list` passava `browser` invece di `context` (crash)
+- Campi duplicati `intro_path`, `outro_path`, `use_web_search` in config
+- Funzione `generate_audio` duplicata in `tts.py`
+- Chiamate LLM sincrone in contesto async (ora tutte async)
 
-**Opzione A — FastHTML (Answer.AI)**
-- Framework Python puro per HTML reattivo
-- Server-side rendering, niente JavaScript
-- Unico file Python per tutta la UI
-- Perfetto per app monouso/small team
+**Documentazione**
+- `docs/library.md` — uso come libreria con esempi
+- `docs/web-app.md` — web app, newsletter esempio, REST API, deploy
+- README aggiornato con Docker, multi-LLM, quick start
 
-**Opzione B — HTMX + Jinja2 + Tailwind** (più flessibile)
-- HTMX per interattività senza scrivere JS
-- Jinja2 template (già incluso in FastAPI)
-- Tailwind CSS per UI accattivante
-- Più controllabile se l'app cresce
+---
 
-### Per iniziare subito: **Gradio**
-- Ancora più veloce: una griglia di checkbox + pulsante
-- Componenti UI già pronti, stile Hugging Face
-- Meno bello esteticamente, ma funzionale in 20 righe
+## Proposte per il futuro
 
-## Architettura Web
+### v3.0 — Qualità audio e produttività
 
-```
-┌──────────┐     ┌──────────────────────────────────────┐
-│  Browser │────▶│  FastAPI /src/web/                    │
-│  (HTMX)  │     │                                      │
-└──────────┘     │  GET / → form inserimento URL        │
-                 │  POST /fetch → estrai articoli        │
-                 │  POST /generate → seleziona + genera  │
-                 │  GET /download/{id} → scarica MP3    │
-                 │                                      │
-                 │  /src/builder.py (riusato!)           │
-                 │  /src/fetcher.py                      │
-                 │  /src/translator.py                   │
-                 │  /src/tts.py                          │
-                 │  /src/tracker.py                      │
-                 │  /src/audio.py                        │
-                 └──────────────────────────────────────┘
-                              │
-                     ┌───────▼────────┐
-                     │  podcast.db    │
-                     │  SQLite        │
-                     └────────────────┘
-```
+| Funzione | Descrizione |
+|---|---|
+| **Multi-speaker** | Dialogo tra 2 voci (conduttore + ospite) invece di monologo |
+| **Generazione batch** | Processare N newsletter in parallelo (asyncio.gather) |
+| **Cache TTS** | Evitare rigenerare audio per script identici |
+| **Supporto podcast lungo** | Suddividere episodi >60 min in parti |
+| **Scheduling integrato** | Agenda interna (APScheduler) invece di cron esterno |
 
-## Tabella di marcia
+### v3.1 — Fonte contenuti
 
-### Fase 1 — Setup web (settimana 1)
-- [ ] Installare FastAPI + uvicorn + SQLModel
-- [ ] Creare `src/web/` con struttura base
-- [ ] Spostare logica di estrazione articoli (oggi `fetcher.py` prende tutto il body, serve estrarre singoli articoli con titolo e descrizione)
-- [ ] Esporre endpoint `POST /fetch-articles` che accetta URL, estrae lista articoli
-- [ ] Template HTML minimale: form URL + lista risultati
+| Funzione | Descrizione |
+|---|---|
+| **YouTube → Podcast** | Estrarre trascrizione YouTube → LLM → TTS |
+| **PDF/Articolo singolo** | Accettare URL diretto (non solo archive page) |
+| **RSS feed input** |Subscribe a feed RSS come fonte automatica |
+| **File upload** | Caricare PDF/TXT/DOCX per generazione podcast |
 
-### Fase 2 — Selezione e generazione (settimana 2)
-- [ ] Endpoint `POST /generate` che accetta URL articolo + voce TTS
-- [ ] Feedback progresso (SSE o polling)
-- [ ] Download file MP3 generato
-- [ ] Salvataggio cronologia in SQLite
+### v3.2 — Esperienza Web
 
-### Fase 3 — UX accattivante (settimana 3)
-- [ ] Tailwind CSS per UI moderna
-- [ ] Preview testo tradotto prima di generare audio
-- [ ] Player audio embedded per ascoltare prima di scaricare
-- [ ] Stato "in elaborazione" con spinner
+| Funzione | Descrizione |
+|---|---|
+| **WebSocket progress** | Stato generazione in tempo reale (invece di polling HTMX) |
+| **Preview script** | Mostrare e modificare lo script prima di generare audio |
+| **Drag & drop articoli** | Riordinare playlist articoli nell'interfaccia |
+| **Storico ricco** | Filtri, ricerca, statistiche di ascolto |
+| **Temi chiari/scuri** | Tailwind dark mode |
 
-### Fase 4 — Selezione multipla e playlist (settimana 4)
-- [ ] Seleziona/deseleziona articoli individuali
-- [ ] Selzione "tutti" / "nessuno"
-- [ ] Generazione audio multipla in batch
-- [ ] Unione playlist → singolo MP3 (riusa `merge_audio_files`)
+### v3.3 — API & Integrazione
 
-### Fase 5 — Polish (futuro)
-- [ ] Autenticazione base (password single-user)
-- [ ] Deploy Docker
-- [ ] Supporto multi-lingua (altre voci Edge-TTS)
-- [ ] Ricerca e filtro cronologia
-- [ ] Esportazione RSS per podcast player (Apple/Spotify)
+| Funzione | Descrizione |
+|---|---|
+| **Webhook callback** | Notifica POST a URL quando generazione completa |
+| **API key management** | CRUD per API token via web UI |
+| **Rate limiting** | Limite richieste per token/IP (Flask-Limiter pattern) |
+| **OpenAPI client SDK** | Generare client Python/JS da spec OpenAPI |
+| **GraphQL endpoint** | Alternativa a REST per query complesse |
 
-## Cambiamenti necessari al codice esistente
+### v4.0 — Produzione
 
-1. **`src/fetcher.py`** — Aggiungere funzione che estrae singoli articoli (titolo + descrizione breve) dalla pagina archive, non solo il body completo. Attualmente prende tutto il contenuto di un post. Serve una modalità "summary" che estragga una lista di titoli/descrizioni.
+| Funzione | Descrizione |
+|---|---|
+| **Multi-utente** | Autenticazione, profili, sorgenti multiple per utente |
+| **PostgreSQL support** | Sostituire sqlite3 per deploy multi-utente |
+| **Cloud storage** | Upload audio su S3/GCS con download presigned |
+| **CDN delivery** | Distribuzione audio via CDN |
+| **Monitoring** | Logging strutturato, metriche, alerting |
+| **CI/CD** | GitHub Actions: test, lint, build Docker, deploy |
 
-2. **`src/builder.py`** — Aggiungere funzione `fetch_article_list(url, ...) -> list[ArticleItem]` che restituisce articoli senza tradurre
+### Idee sperimentali
 
-3. **Audio** — Il servizio audio già supporta merge, va bene
+| Funzione | Descrizione |
+|---|---|
+| **AI Host Voice Cloning** | Clonare una voce reale (ElevenLabs voice lab) |
+| **Summarization Layer** | Riepilogo automatico prima della traduzione per newsletter lunghe |
+| **Multilingua** | Generare podcast in EN/FR/ES/DE oltre all'italiano |
+| **NotebookLM-style** | Generare "discussion" tra due host invece di monologo |
+| **Music background** | Aggiungere musica di sottofondo generata o librerie royalty-free |
 
-## Esempio di nuova struttura `src/web/`
+---
 
-```
-src/web/
-├── __init__.py
-├── app.py              # FastAPI app, routes, startup
-├── db.py               # SQLModel models + session
-├── templates/
-│   ├── base.html       # Layout Tailwind
-│   ├── index.html      # Form URL
-│   ├── articles.html   # Lista articoli con checkbox
-│   ├── progress.html   # Stato generazione
-│   └── history.html    # Cronologia
-└── static/
-    └── style.css
-```
+## Contribuire
 
-## Perché FastAPI + HTMX (non React/Next.js)
+Le proposte sono ordinate per priorità percepita. Se vuoi contribuire:
 
-| Criterio | FastAPI + HTMX | React / Next.js |
-|----------|---------------|-----------------|
-| Stessa lingua del progetto | ✅ Python | ❌ JavaScript |
-| Riuso codice esistente | Diretto (import builder) | Richiede API layer |
-| Complessità setup | Bassa | Alta (node, build, routing) |
-| Bundle size | Minimo (HTML + CSS) | Centinaia di KB JS |
-| Tempo per MVP | Giorni | Settimane |
-| SEO | ✅ server-side | ❌ client-side |
-| Manutenzione unica persona | ✅ | ❌ (due codebase) |
+1. Scegli una funzione dalla roadmap
+2. Apri una issue per discuterla
+3. Implementala con test
+4. Apri PR
+
+Ogni nuova funzione dovrebbe:
+- Avere test (pytest)
+- Essere documentata in `docs/`
+- Seguire il pattern del progetto (async first, Pydantic models)

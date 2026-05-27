@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "podcast-generator"
+version = "2.0.0"
+description = "Transform newsletters into Italian podcast episodes"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Podcast Generator Contributors"},
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Text Processing :: Markup :: HTML",
+]
+
+dependencies = [
+    "playwright>=1.58.0",
+    "pydub>=0.25.1",
+    "edge-tts>=6.1.3",
+    "python-dotenv>=1.1.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "google-genai>=1.14.0",
+    "typer>=0.15.0",
+    "rich>=13.9.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "jinja2>=3.1.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.0.0"]
+anthropic = ["anthropic>=0.30.0"]
+ollama = ["httpx>=0.27.0"]
+all = [
+    "podcast-generator[openai,anthropic,ollama]",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.27.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+"Source" = "https://github.com/anomalyco/podcast-generator"
+
+[tool.setuptools.packages.find]
+include = ["podcast_generator*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]

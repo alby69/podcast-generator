@@ -2,7 +2,30 @@
 
 Pipeline automatica che trasforma newsletter in episodi podcast in **italiano**, pronti da ascoltare.
 
-La sorgente delle news è completamente configurabile via `.env`: puoi usare qualsiasi newsletter ospitata su **Beehiiv** (o adattare lo scraper ad altre piattaforme modificando i selettori CSS).
+## Quick Start
+
+```bash
+git clone <url> && cd podcast-generator
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+playwright install firefox
+cp .env.example .env
+# modifica .env con la tua GEMINI_API_KEY e la sorgente newsletter
+
+# CLI
+python main.py daily
+
+# Web App
+uvicorn podcast_generator.web.app:app --reload
+```
+
+## Documentazione
+
+| Documento | Contenuto |
+|---|---|
+| `docs/library.md` | Usare come libreria Python (API completa, configurazione, esempi) |
+| `docs/web-app.md` | Usare come web app (newsletter esempio, REST API, auth, deploy) |
+| `ROADMAP.md` | Stato attuale e funzioni future |
 
 ## Architettura
 
@@ -16,12 +39,12 @@ Newsletter (sorgente configurabile)
         │
         ▼
   ┌───────────┐
-  │ Translator│  Google Gemini → traduce e riscrive in italiano come script podcast
+  │ Translator│  LLM (Gemini / OpenAI / Anthropic / Ollama)
   └─────┬─────┘
         │
         ▼
   ┌───────────┐
-  │    TTS    │  Edge-TTS (Microsoft) → genera audio MP3 con voci neurali italiane
+  │    TTS    │  Edge-TTS (gratuito) o ElevenLabs
   └─────┬─────┘
         │
         ▼
@@ -30,169 +53,161 @@ Newsletter (sorgente configurabile)
   └───────────┘
 ```
 
-Il progetto è strutturato su tre livelli:
-
-1. **Servizi** (`src/fetcher.py`, `translator.py`, `tts.py`, `audio.py`, `tracker.py`) — moduli puri, ognuno con una sola responsabilità
-2. **Builder** (`src/builder.py`) — layer async che orchesta i servizi, senza dipendenze CLI. Importabile da web app o altri frontend
-3. **Pipeline CLI** (`src/pipeline.py` + `main.py`) — thin wrapper con progress bar Rich, chiama il builder
-
-## Requisiti
-
-- Python 3.10+
-- [Playwright browsers](https://playwright.dev/python/docs/installation) (`playwright install firefox`)
-- Chiave API **Google Gemini** ([AI Studio](https://aistudio.google.com/)) — gratuita, generosissima
-- **Edge-TTS** non richiede chiave API (gratuito, nessun limite di token)
-
 ## Installazione
 
+### Da sorgente
+
 ```bash
-# Clona il repository
-git clone <url> && cd podcast-generator
-
-# Crea ambiente virtuale
 python3 -m venv .venv && source .venv/bin/activate
-
-# Installa dipendenze
 pip install -r requirements.txt
-
-# Installa il browser Playwright (Firefox)
 playwright install firefox
-
-# Configura le API key
 cp .env.example .env
-# modifica .env con la tua GEMINI_API_KEY e la sorgente newsletter
 ```
 
-### File `.env`
+### Docker
 
-```
-# === API ===
-GEMINI_API_KEY=your_gemini_api_key_here
-# TTS non richiede API key: viene usato Edge-TTS (gratuito)
-
-# === Sorgente newsletter (almeno NEWSLETTER_URL o ARCHIVE_URL) ===
-SOURCE_NAME=There's An AI For That
-NEWSLETTER_URL=https://newsletter.theresanaiforthat.com
-# ARCHIVE_URL=https://newsletter.theresanaiforthat.com/archive
-
-# === Selettori scraping (default Beehiiv) ===
-LOAD_MORE_SELECTOR=button:has-text('Load More'), a:has-text('Load More')
-LINK_PATTERN=/p/
-
-# === Opzionali ===
-TTS_VOICE=it-IT-GiuseppeNeural  # voci italiane: it-IT-GiuseppeNeural (maschile), it-IT-ElsaNeural (femminile)
-GEMINI_MODEL=gemini-3.5-flash
-MAX_EPISODE_MINUTES=60
-OUTPUT_DIR=./output
+```bash
+docker build -t podcast-generator .
+docker run -p 8000:8000 \
+  -v $(pwd)/.env:/app/.env \
+  -v $(pwd)/output:/app/output \
+  podcast-generator
 ```
 
-### Configurazione della sorgente
+## Configurazione
 
-| Variabile | Obbligatoria | Default | Descrizione |
-|-----------|:---:|:-------:|-------------|
-| `SOURCE_NAME` | No | `newsletter` | Nome visualizzato della fonte |
-| `NEWSLETTER_URL` | No* | — | URL base della newsletter |
-| `ARCHIVE_URL` | No* | `{NEWSLETTER_URL}/archive` | URL completo della pagina archive |
-| `LOAD_MORE_SELECTOR` | No | `button:has-text('Load More'), a:has-text('Load More')` | Selettore CSS per il pulsante "Load More" |
-| `LINK_PATTERN` | No | `/p/` | Pattern URL per filtrare i link ai singoli post |
+### Multi-LLM
+
+| Variabile | Default | Provider |
+|---|---|---|
+| `LLM_PROVIDER` | `gemini` | `gemini`, `openai`, `anthropic`, `ollama` |
+| `GEMINI_API_KEY` | — | Google Gemini |
+| `GEMINI_MODEL` | `gemini-2.0-flash` | Google Gemini |
+| `OPENAI_API_KEY` | — | OpenAI |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI |
+| `ANTHROPIC_API_KEY` | — | Anthropic |
+| `ANTHROPIC_MODEL` | `claude-3-5-haiku-latest` | Anthropic |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama |
+| `OLLAMA_MODEL` | `llama3` | Ollama |
+
+### TTS
+
+| Variabile | Default | Provider |
+|---|---|---|
+| `TTS_PROVIDER` | `edge` | `edge`, `elevenlabs` |
+| `TTS_VOICE` | `it-IT-GiuseppeNeural` | Voci Edge-TTS italiane |
+| `ELEVENLABS_API_KEY` | — | ElevenLabs |
+| `ELEVENLABS_VOICE` | — | ElevenLabs voice ID |
+
+### Newsletter / Scraping
+
+| Variabile | Obbligatoria | Default |
+|---|---|---|
+| `NEWSLETTER_URL` | No* | — |
+| `ARCHIVE_URL` | No* | `{NEWSLETTER_URL}/archive` |
+| `LOAD_MORE_SELECTOR` | No | `button:has-text('Load More')...` |
+| `LINK_PATTERN` | No | `/p/` |
 
 \* Almeno uno tra `NEWSLETTER_URL` e `ARCHIVE_URL` deve essere impostato.
 
-> **Nota:** Lo scraper è ottimizzato per **Beehiiv**. Per altre piattaforme, modifica `LOAD_MORE_SELECTOR` e `LINK_PATTERN`.
+### Web App
+
+| Variabile | Default | Ruolo |
+|---|---|---|
+| `WEB_PASSWORD` | — | Password per accesso Web UI |
+| `API_TOKEN` | — | Token per autenticazione REST API |
+| `WEB_PORT` | `8000` | Porta di ascolto |
+| `WEB_HOST` | `0.0.0.0` | Indirizzo di ascolto |
 
 ## Utilizzo
 
+### CLI
+
 ```bash
-# Episodio giornaliero: ultima newsletter → traduzione → audio
-python3 main.py daily
-
-# Episodio settimanale: aggrega N newsletter in una compilation
-python3 main.py weekly                    # ultime 7
-python3 main.py weekly --days 14          # personalizza
-
-# BACKFILL: scarica TUTTE le newsletter passate non ancora processate
-python3 main.py fetch-all
-python3 main.py fetch-all --limit 10      # prime 10 nuove
-
-# Verifica lo stato del tracker
-python3 main.py status
+python main.py daily                               # Episodio giornaliero
+python main.py weekly                              # Compilation settimanale
+python main.py weekly --days 14                    # Personalizza giorni
+python main.py fetch-all                           # Backfill newsletter passate
+python main.py fetch-all --limit 10                # Prime 10 nuove
+python main.py status                              # Stato tracker
 ```
+
+### Python Library
+
+```python
+import asyncio
+from podcast_generator import PodcastGenerator, Settings
+
+# Multi-LLM: cambia solo la variabile d'ambiente
+cfg = Settings(llm_provider="openai", openai_api_key="sk-...")
+
+gen = PodcastGenerator(cfg)
+
+# Episodio giornaliero
+episode = await gen.fetch_and_build_latest()
+
+# Da URL specifici
+articles = await gen.fetch_articles("https://newsletter.example.com")
+episode = await gen.build_from_urls([articles[0].href])
+
+print(f"Audio: {episode.audio_path}, Durata: {episode.duration_minutes} min")
+```
+
+### REST API
+
+```bash
+curl -X POST http://localhost:8000/api/v1/generate \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"urls": ["https://newsletter.example.com/p/article"]}'
+
+# Risposta: {"job_id": "...", "status": "processing", "status_url": "..."}
+
+curl http://localhost:8000/api/v1/status/{job_id} \
+  -H "Authorization: Bearer $API_TOKEN"
+```
+
+Documentazione interattiva: http://localhost:8000/docs
+
+### Web UI
+
+```bash
+uvicorn podcast_generator.web.app:app --reload
+```
+
+Apri http://localhost:8000, incolla URL newsletter, seleziona articoli, genera.
 
 ## Struttura del progetto
 
 ```
-├── main.py                  # CLI (Typer) — entrypoint, chiama asyncio.run()
-├── src/
-│   ├── __init__.py          # Esporta classi e funzioni principali
-│   ├── config.py            # Config dataclass, validazione, .env
-│   ├── models.py            # Dataclass condivisi (Newsletter, Episode)
-│   ├── fetcher.py           # Scraping della newsletter con Playwright
-│   ├── translator.py        # Traduzione/riscrittura con Gemini
-│   ├── tts.py               # Text-to-Speech con Edge-TTS (Microsoft)
-│   ├── audio.py             # Utilità audio (durata, intro/outro, merge)
-│   ├── tracker.py           # Tracker JSON per evitare duplicati
-│   ├── builder.py           # Async orchestration layer (no CLI deps)
-│   └── pipeline.py          # Thin wrapper CLI con Rich progress bar
-├── output/
-│   ├── daily/               # Puntate giornaliere (MP3 + script TXT)
-│   │   ├── 2026-01-15_titolo.mp3
-│   │   └── ...
-│   ├── weekly/              # Compilation settimanali
-│   │   ├── 2026-W03.mp3
-│   │   └── ...
-│   └── .processed.json      # Tracker (non modificare manualmente)
-├── .env
-├── .env.example
-├── requirements.txt
-└── README.md
+├── podcast_generator/          # Libreria Python
+│   ├── config.py               # Pydantic Settings V2 (multi-LLM)
+│   ├── models.py               # Pydantic models (Newsletter, Episode, ...)
+│   ├── exceptions.py           # Errori custom
+│   ├── fetcher.py              # Playwright scraping
+│   ├── translator.py           # Multi-LLM (Gemini, OpenAI, Anthropic, Ollama)
+│   ├── tts.py                  # Edge-TTS / ElevenLabs
+│   ├── audio.py                # pydub utilities
+│   ├── tracker.py              # JSON deduplicazione
+│   ├── builder.py              # PodcastGenerator class (API pubblica)
+│   ├── pipeline.py             # Rich progress CLI wrapper
+│   └── web/
+│       ├── app.py              # FastAPI (Web UI + REST API)
+│       ├── auth.py             # Bearer token + cookie auth
+│       ├── db.py               # sqlite3
+│       └── templates/          # Jinja2 + HTMX + Tailwind
+├── main.py                     # CLI entrypoint (Typer)
+├── Dockerfile                  # Deploy containerizzato
+├── pyproject.toml              # Metadati pacchetto
+├── requirements.txt            # Dipendenze
+├── .env.example                # Template configurazione
+├── tests/
+│   ├── test_core.py
+│   └── test_web.py
+└── docs/
+    ├── library.md              # Documentazione libreria
+    └── web-app.md              # Documentazione web app
 ```
-
-## Dettaglio moduli
-
-### `src/models.py`
-Dataclass condivise (`Newsletter`, `Episode`) usate da tutti i moduli.
-
-### `src/fetcher.py`
-Usa **Playwright** (Firefox headless) per navigare la pagina archive, estrarre link e contenuto testuale.
-
-### `src/translator.py`
-Invia il testo a **Google Gemini** con system prompt per riscrittura in stile podcast italiano.
-
-### `src/tts.py`
-Usa **Edge-TTS** (voci neurali Microsoft, gratuite, nessun limite). Voci italiane: `it-IT-GiuseppeNeural` (maschile), `it-IT-ElsaNeural` (femminile).
-
-### `src/builder.py`
-Layer async che combina i servizi in operazioni complete. **Senza dipendenze CLI/Typer/Rich** — utilizzabile direttamente da una web app:
-
-```python
-from src.config import Config
-from src.builder import fetch_and_build_latest
-
-cfg = Config()
-episode = await fetch_and_build_latest(cfg)
-print(episode.audio_path)  # → output/daily/2026-01-15_titolo.mp3
-```
-
-### `src/pipeline.py`
-Thin orchestrator CLI: aggiunge progress bar Rich attorno alle funzioni del builder. Tutte le funzioni sono async.
-
-### `src/tracker.py`
-Persiste lo stato di elaborazione in `output/.processed.json` per evitare duplicati.
-
-## Voci Edge-TTS
-
-| Voce | Gender | Qualità |
-|------|--------|---------|
-| `it-IT-GiuseppeNeural` (default) | Maschile | Eccellente per news/podcast |
-| `it-IT-ElsaNeural` | Femminile | Naturale e fluida |
-
-## Modelli Gemini
-
-| Modello | Costo |
-|---------|-------|
-| `gemini-3.5-flash` (default) | Gratuito (free tier) |
-| `gemini-3.1-flash-lite` | Gratuito |
-| `gemini-2.5-flash` | Gratuito |
 
 ## Automazione (cron)
 
@@ -204,9 +219,10 @@ Persiste lo stato di elaborazione in `output/.processed.json` per evitare duplic
 ## Stack
 
 | Componente | Tecnologia | Costo |
-|------------|-----------|-------|
+|---|---|---|
 | Scraping | Playwright (Firefox) | Gratuito |
-| LLM | Google Gemini | Gratuito |
+| LLM | Gemini / OpenAI / Anthropic / Ollama | Gratuito (Gemini free tier) |
 | TTS | Edge-TTS (Microsoft) | Gratuito, nessun limite |
 | Audio | pydub + FFmpeg | Gratuito |
 | CLI | Typer + Rich | Gratuito |
+| Web | FastAPI + HTMX + Tailwind | Gratuito |

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-4xl font-black text-center mb-12 text-blue-600 uppercase tracking-tighter">Podcast Generator</h1>
+
+<div class="grid lg:grid-cols-3 gap-8">
+    <!-- Left Column: Search & Results -->
+    <div class="lg:col-span-2 space-y-8">
+        <div class="bg-white p-8 rounded-3xl shadow-xl">
+            <form hx-post="/fetch-articles" hx-target="#article-list" hx-indicator="#loading"
+                  hx-on::after-request="if(event.detail.successful) document.getElementById('article-list').scrollIntoView({behavior:'smooth', block:'start'})">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <input type="url" name="newsletter_url"
+                           placeholder="Incolla l'URL della newsletter (es. Beehiiv)"
+                           required
+                           class="flex-1 p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:outline-none focus:border-blue-500 transition-all font-medium">
+                    <button type="submit"
+                            class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 active:scale-95 transition shadow-lg shadow-blue-200">
+                        Analizza
+                    </button>
+                </div>
+            </form>
+            <div id="loading" class="htmx-indicator flex items-center justify-center gap-3 mt-6 text-blue-500 font-bold">
+                <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+                Recupero articoli in corso...
+            </div>
+        </div>
+
+        <div id="article-list"></div>
+    </div>
+
+    <!-- Right Column: History -->
+    <div class="space-y-6">
+        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2 px-2">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Cronologia
+            {% if episodes %}
+            <span class="text-sm font-normal text-gray-400 ml-1">({{ episodes|length }})</span>
+            {% endif %}
+        </h2>
+        <div class="space-y-4 max-h-[800px] overflow-y-auto pr-2" id="history-list">
+            {% include "history_items.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}

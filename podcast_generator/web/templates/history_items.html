@@ -1,0 +1,59 @@
+{% for ep in episodes %}
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-100 transition-all overflow-hidden group">
+    <div class="p-5 pb-4">
+        <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                </svg>
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="font-bold text-gray-800 leading-snug text-sm group-hover:text-blue-700 transition-colors truncate" title="{{ ep.title }}">
+                    {{ ep.title }}
+                </div>
+                <div class="flex items-center gap-3 mt-1.5">
+                    <span class="text-xs text-gray-400 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        {{ ep.date }}
+                    </span>
+                    {% if ep.url %}
+                    <a href="{{ ep.url }}" target="_blank"
+                       class="text-xs text-blue-500 hover:text-blue-700 transition flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                        Apri
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="px-5 pb-5">
+        <div class="flex items-center gap-3">
+            <audio controls class="h-9 flex-1 min-w-0"
+                   preload="none"
+                   style="max-width: 100%;">
+                <source src="{{ ep.audio_path }}" type="audio/mpeg">
+            </audio>
+            <a href="{{ ep.audio_path }}" download
+               class="p-2.5 bg-gray-50 rounded-xl text-blue-600 hover:bg-blue-600 hover:text-white transition-all shrink-0 border border-gray-200 hover:border-blue-600"
+               title="Scarica MP3">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+            </a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="text-center py-12 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+    <svg class="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+    </svg>
+    <p class="text-gray-400 font-medium italic">Nessun episodio ancora generato</p>
+    <p class="text-gray-400 text-xs mt-1">Gli episodi generati appariranno qui</p>
+</div>
+{% endfor %}

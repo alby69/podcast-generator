@@ -1,46 +1,24 @@
 import pytest
 from fastapi.testclient import TestClient
-from src.web.app import app
-from src.web.db import engine, EpisodeDB
-from sqlmodel import Session, SQLModel, create_engine
-from sqlmodel.pool import StaticPool
 
-@pytest.fixture(name="session")
-def session_fixture():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
+from podcast_generator.web.app import app
+from podcast_generator.web.db import init_db
+
 
 @pytest.fixture(name="client")
-def client_fixture(session: Session):
-    def get_session_override():
-        return session
-
-    from src.web.app import get_session
-    app.dependency_overrides[get_session] = get_session_override
+def client_fixture():
+    import os
+    os.environ["DB_PATH"] = ":memory:"
+    init_db()
     client = TestClient(app)
     yield client
-    app.dependency_overrides.clear()
+
 
 def test_read_main(client: TestClient):
     response = client.get("/", follow_redirects=True)
     assert response.status_code == 200
     assert "Podcast Generator" in response.text
 
-def test_login(client: TestClient):
-    import os
-    with patch.dict(os.environ, {"WEB_PASSWORD": "testpassword"}):
-        # Unauthorized
-        response = client.get("/", follow_redirects=False)
-        assert response.status_code == 307
-
-        # Correct login
-        response = client.post("/login", data={"password": "testpassword"}, follow_redirects=False)
-        assert response.status_code == 303
-        assert "auth_token=testpassword" in response.headers["set-cookie"]
 
 def test_rss_empty(client: TestClient):
     response = client.get("/rss")
@@ -48,4 +26,27 @@ def test_rss_empty(client: TestClient):
     assert "application/xml" in response.headers["content-type"]
     assert "<channel>" in response.text
 
-from unittest.mock import patch
+
+def test_api_no_auth_required_by_default(client: TestClient):
+    response = client.get("/api/v1/episodes")
+    assert response.status_code == 200
+
+
+def test_api_requires_token_when_configured(client: TestClient):
+    import os
+    original = os.environ.get("API_TOKEN")
+    os.environ["API_TOKEN"] = "test-token"
+
+    response = client.get("/api/v1/episodes")
+    assert response.status_code == 401
+
+    response = client.get(
+        "/api/v1/episodes",
+        headers={"Authorization": "Bearer test-token"},
+    )
+    assert response.status_code == 200
+
+    if original is None:
+        del os.environ["API_TOKEN"]
+    else:
+        os.environ["API_TOKEN"] = original

@@ -1,16 +1,31 @@
 #!/usr/bin/env python3
+"""CLI entrypoint for podcast-generator.
+
+Usage:
+    python main.py daily
+    python main.py weekly --days 7
+    python main.py fetch-all --limit 10
+    python main.py status
+"""
+
 import asyncio
 import sys
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich import print as rprint
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.config import Config
-from src.pipeline import daily_episode as _daily, weekly_episode as _weekly, process_all as _all
-from src.tracker import Tracker
+from podcast_generator.config import Settings
+from podcast_generator.pipeline import (
+    daily_episode as _daily,
+    weekly_episode as _weekly,
+    process_all as _all,
+)
+from podcast_generator.tracker import Tracker
+from podcast_generator.exceptions import ConfigError
 
 app = typer.Typer(
     name="podcast-generator",
@@ -18,51 +33,68 @@ app = typer.Typer(
 )
 
 
-def _get_cfg() -> Config:
-    cfg = Config()
+def _get_cfg() -> Settings:
+    cfg = Settings()
     try:
         cfg.validate()
-    except ValueError as e:
+    except ConfigError as e:
         rprint(f"[bold red]Errore:[/] {e}")
-        rprint("Crea un file .env basato su .env.example con le tue API key.")
         raise typer.Exit(code=1) from e
     return cfg
 
 
 @app.command()
 def daily(
-    search: bool = typer.Option(
-        None, "--search/--no-search", help="Abilita/disabilita Google Search grounding"
+    search: Optional[bool] = typer.Option(
+        None,
+        "--search/--no-search",
+        help="Abilita/disabilita Google Search grounding",
     ),
 ):
     """Episodio giornaliero: ultima newsletter → traduzione → audio."""
-    path = asyncio.run(_daily(_get_cfg()))
+    cfg = _get_cfg()
+    if search is not None:
+        cfg.use_web_search = search
+    path = asyncio.run(_daily(cfg))
     rprint(f"[green]Episodio salvato in:[/] {path}")
 
 
 @app.command()
 def weekly(
     days: int = typer.Option(7, "--days", "-d", help="Numero giorni da aggregare"),
-    search: bool = typer.Option(
-        None, "--search/--no-search", help="Abilita/disabilita Google Search grounding"
+    search: Optional[bool] = typer.Option(
+        None,
+        "--search/--no-search",
+        help="Abilita/disabilita Google Search grounding",
     ),
 ):
     """Episodio settimanale: aggrega N newsletter → traduzione → audio."""
-    path = asyncio.run(_weekly(_get_cfg(), days))
+    cfg = _get_cfg()
+    if search is not None:
+        cfg.use_web_search = search
+    path = asyncio.run(_weekly(cfg, days))
     rprint(f"[green]Episodio salvato in:[/] {path}")
 
 
 @app.command()
 def fetch_all(
-    limit: int = typer.Option(
-        None, "--limit", "-l", help="Limite massimo newsletter da processare"
+    limit: Optional[int] = typer.Option(
+        None,
+        "--limit",
+        "-l",
+        help="Limite massimo newsletter da processare",
     ),
-    search: bool = typer.Option(
-        None, "--search/--no-search", help="Abilita/disabilita Google Search grounding"
+    search: Optional[bool] = typer.Option(
+        None,
+        "--search/--no-search",
+        help="Abilita/disabilita Google Search grounding",
     ),
 ):
     """Scarica TUTTE le newsletter non ancora processate."""
-    result = asyncio.run(_all(_get_cfg(), limit=limit))
+    cfg = _get_cfg()
+    if search is not None:
+        cfg.use_web_search = search
+    result = asyncio.run(_all(cfg, limit=limit))
     rprint(
         f"[green]Fatto:[/] {len(result['daily'])} giornaliere, "
         f"{len(result['weekly'])} settimanali"
