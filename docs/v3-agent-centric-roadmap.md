@@ -15,7 +15,28 @@ La versione 3.0 introduce un paradigma **Multi-Agente Disaccoppiato** che comuni
 3.  **Network Agent:** Gestisce l'identità sovrana tramite chiavi pubbliche/private **Nostr**. Pubblica eventi standardizzati per annunciare nuovi episodi.
 4.  **Social Agent:** Monitora i relay Nostr per gestire commenti, reaction e feed condivisi senza database centrali.
 
-## 3. Specifiche Tecniche del Protocollo P2P
+## 3. Roadmap di Sviluppo
+
+### Fase 1: Fondamenta (Completata)
+- [x] Definizione `BaseAgent`.
+- [x] Implementazione `NetworkAgent` (Nostr integration).
+- [x] Implementazione `StorageAgent` (IPFS abstraction).
+- [x] Implementazione `ContentAgent` (Wrapper logica v2).
+- [x] Proof of Concept CLI (`v3-generate`).
+
+### Fase 2: Integrazione IPFS Reale
+- [ ] Integrazione con client IPFS locale o servizio di pinning (es. Pinata).
+- [ ] Gestione cache LRU per i CID scaricati.
+
+### Fase 3: Protocollo Nostr Avanzato
+- [ ] Implementazione NIP-94 (File Metadata) per una migliore compatibilità con i client social.
+- [ ] Sistema di gestione chiavi (import/export seed phrase).
+
+### Fase 4: Web UI Decentralizzata
+- [ ] Refactoring della Web App per interrogare i relay Nostr invece del database SQLite locale.
+- [ ] Player audio che recupera i file direttamente dai gateway IPFS.
+
+## 5. Specifiche Tecniche del Protocollo P2P (Dettaglio)
 
 ### Flusso di Pubblicazione (Sequence Diagram)
 ```mermaid
@@ -45,24 +66,3 @@ sequenceDiagram
     *   `m`: MIME type (`audio/mpeg`).
     *   `alt`: Descrizione testuale per accessibilità.
 *   **Discovery:** NIP-02 (Contact List) per seguire altri creatori di podcast.
-
-## 4. Roadmap di Sviluppo
-
-### Fase 1: Fondamenta (Completata)
-- [x] Definizione `BaseAgent`.
-- [x] Implementazione `NetworkAgent` (Nostr integration).
-- [x] Implementazione `StorageAgent` (IPFS abstraction).
-- [x] Implementazione `ContentAgent` (Wrapper logica v2).
-- [x] Proof of Concept CLI (`v3-generate`).
-
-### Fase 2: Integrazione IPFS Reale
-- [ ] Integrazione con client IPFS locale o servizio di pinning (es. Pinata).
-- [ ] Gestione cache LRU per i CID scaricati.
-
-### Fase 3: Protocollo Nostr Avanzato
-- [ ] Implementazione NIP-94 (File Metadata) per una migliore compatibilità con i client social.
-- [ ] Sistema di gestione chiavi (import/export seed phrase).
-
-### Fase 4: Web UI Decentralizzata
-- [ ] Refactoring della Web App per interrogare i relay Nostr invece del database SQLite locale.
-- [ ] Player audio che recupera i file direttamente dai gateway IPFS.
