@@ -113,7 +113,7 @@ docker run -p 8000:8000 \
 ### Web App
 
 | Variabile | Default | Ruolo |
-|---|---|---|---|
+|---|---|---|
 | `WEB_PASSWORD` | — | Password per accesso Web UI |
 | `API_TOKEN` | — | Token per autenticazione REST API |
 | `WEB_PORT` | `8000` | Porta di ascolto |
