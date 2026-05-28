@@ -1,5 +1,9 @@
 # Proposta: PodcastGen 3.0 — Il Paradigma Decentralizzato e Multi-Agente
 
+> [!NOTE]
+> **Stato della Proposta:** ACCETTATA. L'implementazione è iniziata nel branch `v3-decentralized-agents`.
+> Consulta il piano di implementazione dettagliato in [v3-agent-centric-roadmap.md](v3-agent-centric-roadmap.md).
+
 Questa proposta esplora la transizione da un'architettura client-server a un ecosistema **P2P (Peer-to-Peer)** potenziato da **Agenti AI Specializzati**, eliminando la necessità di un server centrale di hosting.
 
 ## 1. Visione: Verso la "Comunità Senza Server"

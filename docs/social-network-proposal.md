@@ -1,5 +1,8 @@
 # Proposta: Evoluzione Social Network del Podcast Generator
 
+> [!TIP]
+> **Versione 3.0 Update:** Molte delle funzionalità social qui descritte verranno implementate tramite il protocollo **Nostr** (Social Agent), garantendo una rete social realmente decentralizzata e senza server centrali.
+
 Questo documento delinea il piano tecnico per trasformare Podcast Generator in una piattaforma social multi-utente per la creazione, condivisione e discussione di podcast basati su newsletter.
 
 ## 1. Architettura Chat: Interna vs API Esterne
