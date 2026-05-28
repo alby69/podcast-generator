@@ -69,16 +69,16 @@ app.add_middleware(
 # ── Auth Routes ────────────────────────────────────────────────
 
 
-def _callback_url(request: Request) -> str:
+def _callback_url(request: Request, provider: str) -> str:
     base = str(request.base_url).rstrip("/")
-    return base.replace("127.0.0.1", "localhost") + "/auth/callback"
+    return base.replace("127.0.0.1", "localhost") + f"/auth/callback?provider={provider}"
 
 
 @app.get("/auth/google")
 async def auth_google(request: Request):
     if not _cfg.oauth_google_client_id:
         return RedirectResponse("/login?error=google_not_configured", status_code=303)
-    redirect_uri = _callback_url(request)
+    redirect_uri = _callback_url(request, "google")
     return await _oauth.google.authorize_redirect(request, redirect_uri)
 
 
@@ -86,20 +86,28 @@ async def auth_google(request: Request):
 async def auth_github(request: Request):
     if not _cfg.oauth_github_client_id:
         return RedirectResponse("/login?error=github_not_configured", status_code=303)
-    redirect_uri = _callback_url(request)
+    redirect_uri = _callback_url(request, "github")
     return await _oauth.github.authorize_redirect(request, redirect_uri)
 
 
 @app.get("/auth/callback")
-async def auth_callback(request: Request):
+async def auth_callback(request: Request, provider: str = Query("")):
+    if not provider:
+        return RedirectResponse("/login?error=no_provider", status_code=303)
+
     try:
-        token = await _oauth.google.authorize_access_token(request)
-        userinfo = token.get("userinfo")
-        if not userinfo:
-            userinfo = await _oauth.google.parse_id_token(request, token)
-        provider = "google"
-    except Exception:
-        try:
+        if provider == "google":
+            token = await _oauth.google.authorize_access_token(request)
+            userinfo = token.get("userinfo") or (
+                await _oauth.google.get(
+                    "https://www.googleapis.com/oauth2/v3/userinfo", token=token
+                )
+            ).json()
+            user_id = str(userinfo.get("sub", ""))
+            email = userinfo.get("email", "")
+            name = userinfo.get("name", "")
+            picture = userinfo.get("picture", "")
+        elif provider == "github":
             token = await _oauth.github.authorize_access_token(request)
             resp = await _oauth.github.get("https://api.github.com/user", token=token)
             userinfo = resp.json()
@@ -111,21 +119,21 @@ async def auth_callback(request: Request):
                     if e.get("primary"):
                         userinfo["email"] = e["email"]
                         break
-            provider = "github"
-        except Exception as e:
-            return RedirectResponse(f"/login?error=auth_failed:{e}", status_code=303)
-
-    email = (userinfo or {}).get("email", "")
-    name = (userinfo or {}).get("name", "") or (userinfo or {}).get("login", email.split("@")[0])
-    picture = (userinfo or {}).get("picture", "") or (userinfo or {}).get("avatar_url", "")
-    provider_id = str((userinfo or {}).get("sub", "") or (userinfo or {}).get("id", ""))
+            user_id = str(userinfo.get("id", ""))
+            email = userinfo.get("email", "")
+            name = userinfo.get("name", "") or userinfo.get("login", email.split("@")[0])
+            picture = userinfo.get("avatar_url", "")
+        else:
+            return RedirectResponse(f"/login?error=unknown_provider:{provider}", status_code=303)
+    except Exception as e:
+        return RedirectResponse(f"/login?error={provider}_auth_failed:{e}", status_code=303)
 
     if not email:
         return RedirectResponse("/login?error=no_email", status_code=303)
 
     user = get_user_by_email(email)
     if not user:
-        user = create_user(email, name, picture, provider, provider_id)
+        user = create_user(email, name, picture, provider, user_id)
 
     session_token = create_session_token(user, _cfg.jwt_secret)
     resp = RedirectResponse("/", status_code=303)
