@@ -69,11 +69,16 @@ app.add_middleware(
 # ── Auth Routes ────────────────────────────────────────────────
 
 
+def _callback_url(request: Request) -> str:
+    base = str(request.base_url).rstrip("/")
+    return base.replace("127.0.0.1", "localhost") + "/auth/callback"
+
+
 @app.get("/auth/google")
 async def auth_google(request: Request):
     if not _cfg.oauth_google_client_id:
         return RedirectResponse("/login?error=google_not_configured", status_code=303)
-    redirect_uri = request.url_for("auth_callback")
+    redirect_uri = _callback_url(request)
     return await _oauth.google.authorize_redirect(request, redirect_uri)
 
 
@@ -81,7 +86,7 @@ async def auth_google(request: Request):
 async def auth_github(request: Request):
     if not _cfg.oauth_github_client_id:
         return RedirectResponse("/login?error=github_not_configured", status_code=303)
-    redirect_uri = request.url_for("auth_callback")
+    redirect_uri = _callback_url(request)
     return await _oauth.github.authorize_redirect(request, redirect_uri)
 
 
