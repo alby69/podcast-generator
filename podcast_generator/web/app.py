@@ -28,6 +28,7 @@ from podcast_generator.web.auth import (
     verify_api_token, get_current_user,
     init_oauth, create_session_token, _oauth,
 )
+from podcast_generator.agents.manager import get_agents
 
 templates = Jinja2Templates(
     directory=str(Path(__file__).parent / "templates")
@@ -49,7 +50,10 @@ async def _lifespan(app):
     (_cfg.output_dir / "daily").mkdir(parents=True, exist_ok=True)
     (_cfg.output_dir / "weekly").mkdir(parents=True, exist_ok=True)
     init_oauth(_cfg)
+    agents = get_agents(_cfg)
+    await agents.start()
     yield
+    await agents.stop()
 
 
 app = FastAPI(
@@ -217,9 +221,40 @@ def _login_user(email: str, name: str, picture: str, provider: str, uid: str):
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: dict = Depends(get_current_user)):
     episodes = get_episodes()
+    agents = get_agents(_cfg)
+    agents_info = {
+        "pubkey": agents.network.keys.public_key().to_bech32() if agents.network and agents.network.client else "Disconnected"
+    }
     return templates.TemplateResponse(
-        request, "index.html", {"episodes": episodes, "config": _cfg, "user": user}
+        request, "index.html", {
+            "episodes": episodes,
+            "config": _cfg,
+            "user": user,
+            "agents_info": agents_info
+        }
     )
+
+
+@app.get("/v3/discover", response_class=HTMLResponse)
+async def v3_discover(request: Request, _=Depends(get_current_user)):
+    agents = get_agents(_cfg)
+    try:
+        podcasts = await agents.social.discover_podcasts()
+        if not podcasts:
+            return HTMLResponse("<div class='text-slate-400 text-xs italic'>Nessun podcast trovato nelle ultime 24 ore.</div>")
+
+        items = ""
+        for p in podcasts:
+            items += f"""
+            <div class="p-3 bg-slate-700/30 rounded-xl border border-slate-600 mb-2">
+                <div class="font-bold text-xs truncate">{p['title']}</div>
+                <div class="text-[10px] text-slate-400 truncate">by {p['pubkey'][:10]}...</div>
+                <a href="{p['url']}" target="_blank" class="text-blue-400 text-[10px] hover:underline">Ascolta su IPFS</a>
+            </div>
+            """
+        return HTMLResponse(items)
+    except Exception as e:
+        return HTMLResponse(f"<div class='text-red-400 text-xs'>Errore: {e}</div>")
 
 
 @app.post("/imap-folders", response_class=JSONResponse)
@@ -521,6 +556,16 @@ async def _run_generation(job_id: str, article_urls: list[str]):
         gen = PodcastGenerator(config=_cfg)
         titles = _lookup_titles(article_urls)
         episode = await gen.build_from_urls(article_urls, titles=titles)
+
+        # V3 Flow: Upload to IPFS and Publish to Nostr
+        agents = get_agents(_cfg)
+        ipfs_cid = await agents.storage.upload_file(episode.audio_path)
+        if ipfs_cid:
+            await agents.network.publish_podcast(
+                title=episode.title,
+                ipfs_cid=ipfs_cid,
+                file_path=str(episode.audio_path)
+            )
 
         ep_id = add_episode(
             title=episode.title,

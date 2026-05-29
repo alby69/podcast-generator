@@ -73,6 +73,17 @@ class Settings(BaseSettings):
     intro_path: Optional[Path] = Field(default=None)
     outro_path: Optional[Path] = Field(default=None)
 
+    # === V3 Decentralized ===
+    ipfs_provider: str = Field(default="mock")  # mock, local, pinata
+    ipfs_api_key: str = Field(default="")
+    ipfs_api_secret: str = Field(default="")
+    ipfs_gateway_url: str = Field(default="https://ipfs.io/ipfs/")
+
+    nostr_relays: list[str] = Field(
+        default_factory=lambda: ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.snort.social"]
+    )
+    nostr_secret_key: str = Field(default="")
+
     # === Web Auth ===
     oauth_google_client_id: str = Field(default="")
     oauth_google_client_secret: str = Field(default="")

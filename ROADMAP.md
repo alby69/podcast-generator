@@ -75,9 +75,26 @@ Trasformare il progetto in una **libreria Python installabile** con API pulita, 
 
 ---
 
-## Proposte per il futuro
+## Stato Attuale: Sviluppo v3.0 (Agent-Centric & Decentralizzato) 🚀
 
-### v3.0 — Qualità audio e produttività
+Stiamo attivamente lavorando alla versione 3.0, che segna il passaggio da un'architettura monolitica a un sistema **P2P Multi-Agente**.
+
+### v3.0 — L'Era Decentralizzata
+
+| Milestone | Stato | Descrizione |
+|---|---|---|
+| **BaseAgent Framework** | ✅ | Infrastruttura per agenti asincroni disaccoppiati. |
+| **Network Agent (Nostr)** | 🏗️ | Gestione identità (chiavi) e comunicazione via protocollo Nostr. |
+| **Storage Agent (IPFS)** | 🏗️ | Archiviazione distribuita basata su CID invece di file locali. |
+| **Content Agent** | ✅ | Refactoring della logica core in forma di agente. |
+| **Social Agent** | 📅 | Interazioni community (commenti, like) su protocollo aperto. |
+| **Web UI Decentralizzata** | 📅 | Dashboard che interagisce con i relay Nostr. |
+
+---
+
+## Proposte per il futuro (Aggiornate)
+
+### v3.1 — Qualità audio e produttività
 
 | Funzione | Descrizione |
 |---|---|

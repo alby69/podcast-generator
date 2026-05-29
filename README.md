@@ -2,6 +2,9 @@
 
 Pipeline automatica che trasforma newsletter in episodi podcast in **italiano**, pronti da ascoltare.
 
+> [!IMPORTANT]
+> **PodcastGen 3.0 (Versione in Sviluppo):** Stiamo migrando verso un'architettura **Agent-Centric e Decentralizzata** (Nostr + IPFS). Consulta [docs/v3-agent-centric-roadmap.md](docs/v3-agent-centric-roadmap.md) per i dettagli.
+
 ## Quick Start
 
 ```bash
@@ -27,30 +30,21 @@ uvicorn podcast_generator.web.app:app --reload
 | `docs/web-app.md` | Usare come web app (auth OAuth, REST API, deploy, IMAP) |
 | `ROADMAP.md` | Stato attuale e funzioni future |
 
-## Architettura
+## Architettura (Versione 3.0 - Agent-Centric)
 
-```
-Newsletter (Web / RSS / Email IMAP)
-       │
-       ▼
-  ┌───────────┐
-  │  Fetcher  │  Playwright / feedparser / IMAP → articoli
-  └─────┬─────┘
-        │
-        ▼
-  ┌───────────┐
-  │ Translator│  LLM (Gemini / OpenAI / Anthropic / Ollama)
-  └─────┬─────┘
-        │
-        ▼
-  ┌───────────┐
-  │    TTS    │  Edge-TTS (gratuito) o ElevenLabs
-  └─────┬─────┘
-        │
-        ▼
-  ┌───────────┐
-  │  Audio    │  pydub → verifica durata, aggiunge sigle, unisce file
-  └───────────┘
+In PodcastGen 3.0, il sistema non è più un monolite procedurale ma un'orchestra di **Agenti Specializzati** che comunicano via protocolli P2P:
+
+- **Content Agent:** Gestisce lo scraping e la sintesi AI (LLM + TTS).
+- **Storage Agent:** Gestisce l'archiviazione distribuita su **IPFS**.
+- **Network Agent:** Gestisce l'identità e la comunicazione tramite **Nostr**.
+- **Social Agent:** Gestisce community e interazioni senza server centrali.
+
+```mermaid
+graph TD
+    A[Sorgenti] --> B(Content Agent)
+    B --> C(Storage Agent - IPFS)
+    C --> D(Network Agent - Nostr)
+    D --> E[Relays & Peers]
 ```
 
 ## Installazione
@@ -159,6 +153,7 @@ python main.py weekly --days 14                    # Personalizza giorni
 python main.py fetch-all                           # Backfill newsletter passate
 python main.py fetch-all --limit 10                # Prime 10 nuove
 python main.py status                              # Stato tracker
+python main.py v3-generate                         # V3 PoC: Decentralized Flow
 ```
 
 ### Python Library
@@ -217,6 +212,7 @@ Seleziona articoli, clicca **Genera Podcast**, attendi (polling HTMX), scarica l
 
 ```
 ├── podcast_generator/          # Libreria Python
+│   ├── agents/                 # Agenti v3.0 (Content, Network, Storage, Social)
 │   ├── config.py               # Pydantic Settings V2 (multi-LLM, OAuth)
 │   ├── models.py               # Pydantic models
 │   ├── exceptions.py           # Errori custom

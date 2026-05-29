@@ -98,6 +98,34 @@ gen = PodcastGenerator()                          # Config da .env
 gen = PodcastGenerator(Settings(...))             # Config personalizzata
 ```
 
+## Evoluzione v3.0: Agenti Specializzati
+
+In PodcastGen 3.0, puoi utilizzare direttamente gli agenti per un controllo più granulare e per flussi decentralizzati.
+
+### `ContentAgent`
+Esegue la logica di generazione (fetch, translate, synthesis).
+```python
+from podcast_generator.agents.content_agent import ContentAgent
+agent = ContentAgent(cfg)
+episode = await agent.generate_episode_from_newsletter(newsletter)
+```
+
+### `NetworkAgent` (Nostr)
+Gestisce l'identità e la pubblicazione P2P.
+```python
+from podcast_generator.agents.network_agent import NetworkAgent
+agent = NetworkAgent(cfg, secret_key="...")
+await agent.publish_podcast("Titolo", "IPFS_CID", metadata={})
+```
+
+### `StorageAgent` (IPFS)
+Gestisce l'upload e il recupero via Content-Addressing.
+```python
+from podcast_generator.agents.storage_agent import StorageAgent
+agent = StorageAgent(cfg)
+cid = await agent.upload_file(path_to_audio)
+```
+
 ### Fetching
 
 #### `fetch_articles(url=None) -> list[ArticleSummary]`

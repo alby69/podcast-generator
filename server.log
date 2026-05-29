@@ -1,0 +1,14 @@
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/pydub/utils.py:170: RuntimeWarning: Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work
+  warn("Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work", RuntimeWarning)
+/app/podcast_generator/web/auth.py:8: AuthlibDeprecationWarning: authlib.jose module is deprecated, please use joserfc instead.
+It will be compatible before version 2.0.0.
+  from authlib.jose import JsonWebToken
+INFO:     Started server process [391892]
+INFO:     Waiting for application startup.
+2026-05-29 06:36:27,827 - ContentAgent - INFO - ContentAgent ready for generation tasks.
+2026-05-29 06:36:27,827 - StorageAgent - INFO - StorageAgent started with provider: mock
+2026-05-29 06:36:27,831 - NetworkAgent - INFO - Connected to Nostr as npub1jjym3xuwdkhqs44ncj7zsp87wnthjxm6nkcpq93lmd6k5e5mtqtswh9wcq
+2026-05-29 06:36:27,831 - SocialAgent - INFO - SocialAgent monitoring decentralized feed...
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53200 - "GET / HTTP/1.1" 200 OK

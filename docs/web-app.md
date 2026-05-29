@@ -2,6 +2,9 @@
 
 Web app per generare podcast da newsletter con interfaccia visuale e API REST.
 
+> [!WARNING]
+> **Versione 3.0 (In Sviluppo):** L'interfaccia web attuale interagisce con un database SQLite locale. Stiamo migrando verso una UI decentralizzata che interroga i relay **Nostr** e recupera audio da **IPFS**.
+
 ## Avvio rapido
 
 ```bash

@@ -115,5 +115,51 @@ def status():
         rprint(f"  [cyan]{wk}[/]: {len(by_week[wk])} puntate")
 
 
+@app.command()
+def v3_generate():
+    """V3 PoC: Fetch -> ContentAgent -> StorageAgent (IPFS) -> NetworkAgent (Nostr)."""
+    from podcast_generator.agents.content_agent import ContentAgent
+    from podcast_generator.agents.storage_agent import StorageAgent
+    from podcast_generator.agents.network_agent import NetworkAgent
+
+    async def run_v3():
+        cfg = _get_cfg()
+
+        content_agent = ContentAgent(cfg)
+        storage_agent = StorageAgent(cfg)
+        network_agent = NetworkAgent(cfg)
+
+        # Start agents
+        await content_agent.start()
+        await storage_agent.start()
+        await network_agent.start()
+
+        try:
+            rprint("[yellow]V3 Flow: Fetching latest newsletter...[/]")
+            nl = await content_agent.fetch_latest()
+
+            rprint(f"[yellow]V3 Flow: Generating episode for '{nl.title}'...[/]")
+            episode = await content_agent.generate_episode_from_newsletter(nl)
+
+            rprint("[yellow]V3 Flow: Uploading to IPFS...[/]")
+            cid = await storage_agent.upload_file(episode.audio_path)
+
+            if cid:
+                rprint(f"[green]V3 Flow: IPFS CID: {cid}[/]")
+                rprint("[yellow]V3 Flow: Publishing to Nostr...[/]")
+                event_id = await network_agent.publish_podcast(episode.title, cid, {})
+                if event_id:
+                    rprint(f"[bold green]V3 Flow COMPLETE![/]")
+                    rprint(f"Nostr Event ID: {event_id.to_bech32()}")
+                    rprint(f"IPFS Gateway: {await storage_agent.get_file_url(cid)}")
+
+        finally:
+            await content_agent.stop()
+            await storage_agent.stop()
+            await network_agent.stop()
+
+    asyncio.run(run_v3())
+
+
 if __name__ == "__main__":
     app()
