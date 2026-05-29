@@ -1,260 +1,88 @@
-# Podcast Generator
+# AgentMesh
 
-Pipeline automatica che trasforma newsletter in episodi podcast in **italiano**, pronti da ascoltare.
+> **A decentralized coordination mesh for autonomous AI agents.**
 
-> [!IMPORTANT]
-> **PodcastGen 3.0 (Versione in Sviluppo):** Stiamo migrando verso un'architettura **Agent-Centric e Decentralizzata** (Nostr + IPFS). Consulta [docs/v3-agent-centric-roadmap.md](docs/v3-agent-centric-roadmap.md) per i dettagli.
+AgentMesh is an open-source framework and ecosystem designed to build, deploy, and orchestrate AI agents in a truly decentralized environment. By combining **Nostr** for coordination, **IPFS** for storage, and a **Multi-Agent** architecture, AgentMesh enables a "serverless" future for AI applications.
 
-## Quick Start
+---
+
+## 🌟 La Visione
+
+AgentMesh non è solo un software, è un'infrastruttura per la sovranità digitale.
+
+- **Senza Server Centrali**: Nessun singolo punto di fallimento. Il sistema vive sui nodi degli utenti.
+- **Identità Sovrana**: Ogni agente e utente possiede le proprie chiavi crittografiche (Nostr).
+- **Memoria Distribuita**: I dati sono archiviati su IPFS, rendendoli permanenti e indirizzabili per contenuto.
+- **Collaborazione Agente-Agente (A2A)**: Gli agenti cooperano via protocolli aperti, non API proprietarie.
+
+---
+
+## 🏗️ Struttura del Progetto
+
+Il repository è organizzato come un monorepo gestito con `uv`.
+
+### Core Packages (`packages/`)
+- **[`agentmesh-core`](packages/agentmesh-core)**: Il "cervello" del sistema. Definisce le interfacce base, l'orchestrazione e i provider LLM/TTS.
+- **[`agentmesh-relay`](packages/agentmesh-relay)**: Il layer di comunicazione P2P basato sul protocollo **Nostr**.
+- **[`agentmesh-vault`](packages/agentmesh-vault)**: Il layer di archiviazione distribuita basato su **IPFS**.
+- **[`agentmesh-studio`](packages/agentmesh-studio)**: Strumenti CLI e dashboard per monitorare e gestire il mesh.
+
+### Applications (`apps/`)
+- **[`podcast-generator`](apps/podcast-generator)**: Il nostro caso d'uso principale. Una pipeline completa che trasforma newsletter in podcast in modo autonomo e distribuito.
+
+---
+
+## 🎙️ Caso d'Uso: Podcast Generator
+
+**PodcastGen** è la dimostrazione di cosa può fare AgentMesh. Trasforma contenuti testuali in episodi audio, li distribuisce via IPFS e li annuncia sulla rete Nostr.
+
+### Quick Start (PodcastGen)
 
 ```bash
-git clone <url> && cd podcast-generator
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+# Installa le dipendenze
+uv sync
 playwright install firefox
+
+# Configura l'ambiente
 cp .env.example .env
-# modifica .env con la tua GEMINI_API_KEY e la sorgente newsletter
+# Modifica .env con le tue chiavi API (Gemini, OpenAI, etc.)
 
-# CLI
-python main.py daily
+# Avvia la generazione via CLI
+python apps/podcast-generator/main.py daily
 
-# Web App
-uvicorn podcast_generator.web.app:app --reload
+# Avvia l'interfaccia Web
+PYTHONPATH=apps/podcast-generator uvicorn podcast_generator.web.app:app --reload
 ```
 
-## Documentazione
+Consulta la [documentazione di PodcastGen](apps/podcast-generator/README.md) per maggiori dettagli.
 
-| Documento | Contenuto |
-|---|---|
-| `docs/library.md` | Usare come libreria Python (API completa, configurazione, esempi) |
-| `docs/web-app.md` | Usare come web app (auth OAuth, REST API, deploy, IMAP) |
-| `ROADMAP.md` | Stato attuale e funzioni future |
+---
 
-## Architettura (Versione 3.0 - Agent-Centric)
+## 🚀 Verso la v3.0
 
-In PodcastGen 3.0, il sistema non è più un monolite procedurale ma un'orchestra di **Agenti Specializzati** che comunicano via protocolli P2P:
+Stiamo attivamente migrando PodcastGen verso l'architettura AgentMesh v3.0 (Agent-Centric).
+I punti chiave della roadmap includono:
+- Integrazione nativa con **agentstr-sdk** per compatibilità **MCP** (Model Context Protocol).
+- Protocollo di comunicazione **Agent-to-Agent (A2A)** standardizzato.
+- Web UI completamente decentralizzata che interroga i relay Nostr.
 
-- **Content Agent:** Gestisce lo scraping e la sintesi AI (LLM + TTS).
-- **Storage Agent:** Gestisce l'archiviazione distribuita su **IPFS**.
-- **Network Agent:** Gestisce l'identità e la comunicazione tramite **Nostr**.
-- **Social Agent:** Gestisce community e interazioni senza server centrali.
+Consulta [docs/v3-agent-centric-roadmap.md](docs/v3-agent-centric-roadmap.md) per i dettagli tecnici.
 
-```mermaid
-graph TD
-    A[Sorgenti] --> B(Content Agent)
-    B --> C(Storage Agent - IPFS)
-    C --> D(Network Agent - Nostr)
-    D --> E[Relays & Peers]
-```
+---
 
-## Installazione
+## 📖 Documentazione
 
-### Da sorgente
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-playwright install firefox
-cp .env.example .env
-```
-
-### Docker
-
-```bash
-docker build -t podcast-generator .
-docker run -p 8000:8000 \
-  -v $(pwd)/.env:/app/.env \
-  -v $(pwd)/output:/app/output \
-  podcast-generator
-```
-
-## Configurazione
-
-### Multi-LLM
-
-| Variabile | Default | Provider |
+| Documento | Destinatario | Contenuto |
 |---|---|---|
-| `LLM_PROVIDER` | `gemini` | `gemini`, `openai`, `anthropic`, `ollama` |
-| `GEMINI_API_KEY` | — | Google Gemini |
-| `GEMINI_MODEL` | `gemini-2.0-flash` | Google Gemini |
-| `OPENAI_API_KEY` | — | OpenAI |
-| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI |
-| `ANTHROPIC_API_KEY` | — | Anthropic |
-| `ANTHROPIC_MODEL` | `claude-3-5-haiku-latest` | Anthropic |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama |
-| `OLLAMA_MODEL` | `llama3` | Ollama |
+| [docs/VISION.md](docs/VISION.md) | Tutti | La filosofia e il "perché" dietro AgentMesh |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Sviluppatori | Dettagli tecnici sui layer del mesh |
+| [docs/AGENTSTR_INTEGRATION.md](docs/AGENTSTR_INTEGRATION.md) | Sviluppatori | Piano di integrazione MCP e agentstr-sdk |
+| [apps/podcast-generator/README.md](apps/podcast-generator/README.md) | Utenti | Guida completa all'app podcast |
 
-### TTS
+---
 
-| Variabile | Default | Provider |
-|---|---|---|
-| `TTS_PROVIDER` | `edge` | `edge`, `elevenlabs` |
-| `TTS_VOICE` | `it-IT-GiuseppeNeural` | Voci Edge-TTS italiane |
-| `ELEVENLABS_API_KEY` | — | ElevenLabs |
-| `ELEVENLABS_VOICE` | — | ElevenLabs voice ID |
+## Contribuire
 
-### Newsletter / Scraping
+Siamo in una fase di sviluppo intensa. Se vuoi contribuire alla costruzione di un futuro AI decentralizzato, apri una Issue o una Pull Request.
 
-| Variabile | Obbligatoria | Default | Descrizione |
-|---|---|---|---|
-| `NEWSLETTER_URL` | No* | — | URL principale newsletter |
-| `ARCHIVE_URL` | No* | `{NEWSLETTER_URL}/archive` | URL archivio articoli |
-| `LANGUAGE` | No | `italiano` | Lingua di traduzione (italiano, inglese, francese, tedesco, spagnolo, portoghese) |
-| `LOAD_MORE_SELECTOR` | No | `button:has-text('Load More')...` | Selettore CSS per caricare più articoli |
-| `LINK_PATTERN` | No | `/p/` | Pattern regex per link articoli |
-
-\* Almeno uno tra `NEWSLETTER_URL` e `ARCHIVE_URL` deve essere impostato.
-
-### Web App — Autenticazione
-
-Supporta **OAuth** (Google/GitHub) e **password condivisa** come fallback.
-
-| Variabile | Default | Ruolo |
-|---|---|---|
-| `OAUTH_GOOGLE_CLIENT_ID` | — | Client ID Google OAuth |
-| `OAUTH_GOOGLE_CLIENT_SECRET` | — | Client Secret Google OAuth |
-| `OAUTH_GITHUB_CLIENT_ID` | — | Client ID GitHub OAuth |
-| `OAUTH_GITHUB_CLIENT_SECRET` | — | Client Secret GitHub OAuth |
-| `JWT_SECRET` | `change-me` | Chiave HMAC per firma JWT (cambiare in produzione) |
-| `WEB_PASSWORD` | — | Password fallback (se nessun OAuth configurato) |
-| `API_TOKEN` | — | Token per autenticazione REST API (vuoto = API pubbliche) |
-| `WEB_PORT` | `8000` | Porta di ascolto |
-| `WEB_HOST` | `0.0.0.0` | Indirizzo di ascolto |
-
-**Flusso autenticazione Web UI:**
-1. Se `OAUTH_GOOGLE_CLIENT_ID` o `OAUTH_GITHUB_CLIENT_ID` configurato → pulsanti OAuth nella pagina di login
-2. Se solo `WEB_PASSWORD` impostato → form password
-3. Se nessuno dei due → accesso libero (modalità sviluppo)
-4. L'RSS feed e i download audio sono pubblici (nessuna autenticazione)
-
-**URI di callback da registrare in Google Cloud Console:**
-```
-http://localhost:8000/auth/callback
-```
-
-### IMAP (Email)
-
-| Variabile | Default | Ruolo |
-|---|---|---|
-| `IMAP_HOST` | — | Server IMAP (es. `imap.gmail.com`) |
-| `IMAP_USER` | — | Indirizzo email |
-| `IMAP_PASSWORD` | — | App password (Gmail) |
-| `IMAP_FOLDER` | `INBOX` | Cartella IMAP o label Gmail |
-| `IMAP_MAX_EMAILS` | `100` | Email massime per batch (1-1000) |
-
-## Utilizzo
-
-### CLI
-
-```bash
-python main.py daily                               # Episodio giornaliero
-python main.py weekly                              # Compilation settimanale
-python main.py weekly --days 14                    # Personalizza giorni
-python main.py fetch-all                           # Backfill newsletter passate
-python main.py fetch-all --limit 10                # Prime 10 nuove
-python main.py status                              # Stato tracker
-python main.py v3-generate                         # V3 PoC: Decentralized Flow
-```
-
-### Python Library
-
-```python
-import asyncio
-from podcast_generator import PodcastGenerator, Settings
-
-# Multi-LLM: cambia solo la variabile d'ambiente
-cfg = Settings(llm_provider="openai", openai_api_key="sk-...")
-
-gen = PodcastGenerator(cfg)
-
-# Episodio giornaliero
-episode = await gen.fetch_and_build_latest()
-
-# Da URL specifici
-articles = await gen.fetch_articles("https://newsletter.example.com")
-episode = await gen.build_from_urls([articles[0].href])
-
-print(f"Audio: {episode.audio_path}, Durata: {episode.duration_minutes} min")
-```
-
-### REST API
-
-```bash
-curl -X POST http://localhost:8000/api/v1/generate \
-  -H "Authorization: Bearer $API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"urls": ["https://newsletter.example.com/p/article"]}'
-
-# Risposta: {"job_id": "...", "status": "processing", "status_url": "..."}
-
-curl http://localhost:8000/api/v1/status/{job_id} \
-  -H "Authorization: Bearer $API_TOKEN"
-```
-
-Documentazione interattiva: http://localhost:8000/docs
-
-### Web UI
-
-```bash
-uvicorn podcast_generator.web.app:app --reload
-```
-
-Apri http://localhost:8000.
-
-**Sorgenti supportate:**
-- **Web** — incolla URL newsletter (Beehiiv, Substack, etc.)
-- **RSS** — feed RSS automatizzato
-- **Email** — configura IMAP via Impostazioni
-
-Seleziona articoli, clicca **Genera Podcast**, attendi (polling HTMX), scarica l'MP3.
-
-## Struttura del progetto
-
-```
-├── podcast_generator/          # Libreria Python
-│   ├── agents/                 # Agenti v3.0 (Content, Network, Storage, Social)
-│   ├── config.py               # Pydantic Settings V2 (multi-LLM, OAuth)
-│   ├── models.py               # Pydantic models
-│   ├── exceptions.py           # Errori custom
-│   ├── fetcher.py              # Playwright scraping
-│   ├── translator.py           # Multi-LLM (Gemini, OpenAI, Anthropic, Ollama)
-│   ├── tts.py                  # Edge-TTS / ElevenLabs
-│   ├── audio.py                # pydub utilities
-│   ├── tracker.py              # JSON deduplicazione
-│   ├── builder.py              # PodcastGenerator (API pubblica)
-│   ├── pipeline.py             # Rich CLI wrapper
-│   └── web/
-│       ├── app.py              # FastAPI (Web UI + REST API + OAuth)
-│       ├── auth.py             # OAuth (Google/GitHub) + JWT + Bearer token
-│       ├── db.py               # sqlite3 (episodi + utenti)
-│       └── templates/          # Jinja2 + HTMX + Tailwind
-├── main.py                     # CLI entrypoint (Typer)
-├── Dockerfile                  # Deploy containerizzato
-├── pyproject.toml              # Metadati pacchetto
-├── requirements.txt            # Dipendenze
-├── .env.example                # Template configurazione
-├── tests/
-│   ├── test_core.py
-│   └── test_web.py
-└── docs/
-    ├── library.md              # Documentazione libreria
-    └── web-app.md              # Documentazione web app
-```
-
-## Automazione (cron)
-
-```cron
-# Ogni lunedì alle 8:00
-0 8 * * 1 cd /home/utente/podcast-generator && .venv/bin/python3 main.py weekly >> cron.log 2>&1
-```
-
-## Stack
-
-| Componente | Tecnologia | Costo |
-|---|---|---|
-| Scraping | Playwright (Firefox) | Gratuito |
-| LLM | Gemini / OpenAI / Anthropic / Ollama | Gratuito (Gemini free tier) |
-| TTS | Edge-TTS (Microsoft) | Gratuito |
-| Audio | pydub + FFmpeg | Gratuito |
-| CLI | Typer + Rich | Gratuito |
-| Web | FastAPI + HTMX + Tailwind | Gratuito |
+**AgentMesh: The mesh is the message.**

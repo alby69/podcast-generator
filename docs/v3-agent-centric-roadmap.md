@@ -28,8 +28,10 @@ La versione 3.0 introduce un paradigma **Multi-Agente Disaccoppiato** che comuni
 - [ ] Integrazione con client IPFS locale o servizio di pinning (es. Pinata).
 - [ ] Gestione cache LRU per i CID scaricati.
 
-### Fase 3: Protocollo Nostr Avanzato
+### Fase 3: Protocollo Nostr Avanzato & Economia
 - [ ] Implementazione NIP-94 (File Metadata) per una migliore compatibilità con i client social.
+- [ ] Integrazione **agentstr-sdk** per compatibilità **MCP** e Agent-to-Agent (A2A).
+- [ ] Supporto micropagamenti **Lightning/Cashu** per l'esecuzione dei task (ispirato a **Routstr**).
 - [ ] Sistema di gestione chiavi (import/export seed phrase).
 
 ### Fase 4: Web UI Decentralizzata
