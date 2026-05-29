@@ -35,17 +35,10 @@ Integrazione profonda per abilitare l'economia agentica e la compatibilità stan
 ### Fase 4: Social Layer & Web UI v3
 - [ ] Feed community basato su eventi Nostr (NIP-94).
 - [ ] Commenti e Reaction decentralizzate.
-- [ ] Web Dashboard P2P (interazione diretta con i relay).
 
 ---
 
 ## Proposte Future
-
-### v3.5 — Knowledge & Memory
 - [ ] Integrazione OrbitDB per stati strutturati.
-- [ ] RAG distribuito tra i peer.
-
-### v4.0 — Produzione & Scalabilità
 - [ ] Supporto PostgreSQL per istanze multi-utente massive.
 - [ ] Cloud Storage fallback (S3/GCS).
-- [ ] CI/CD automatizzata e monitoring strutturato.
