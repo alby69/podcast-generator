@@ -66,7 +66,7 @@ I punti chiave della roadmap includono:
 - Protocollo di comunicazione **Agent-to-Agent (A2A)** standardizzato.
 - Web UI completamente decentralizzata che interroga i relay Nostr.
 
-Consulta [docs/v3-agent-centric-roadmap.md](docs/v3-agent-centric-roadmap.md) per i dettagli tecnici.
+Consulta [docs/ROADMAP.md](docs/ROADMAP.md) per i dettagli tecnici.
 
 ---
 

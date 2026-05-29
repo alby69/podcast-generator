@@ -39,4 +39,4 @@ graph TD
 
 - [Guida all'uso della Web App](../../docs/web-app.md)
 - [Uso come Libreria Python](../../docs/library.md)
-- [Roadmap v3.0](../../docs/v3-agent-centric-roadmap.md)
+- [Roadmap AgentMesh](../../docs/ROADMAP.md)
